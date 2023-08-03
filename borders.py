@@ -1,0 +1,22 @@
+from openpyxl.styles import Side, Border
+
+# Définition des modèles de bordures
+thin = Side(border_style="thin")
+medium = Side(border_style="medium")
+thin_all_borders = Border(left=thin, right=thin, top=thin, bottom=thin)
+medium_all_borders = Border(left=medium, right=medium, top=medium, bottom=medium)
+medium_border_left = Border(left=medium, right=thin, top=thin, bottom=thin)
+medium_border_right = Border(left=thin, right=medium, top=thin, bottom=thin)
+medium_border_top = Border(left=thin, right=thin, top=medium, bottom=thin)
+medium_border_bottom = Border(left=thin, right=thin, top=thin, bottom=medium)
+medium_contour_left = Border(left=medium, right=thin, top=medium, bottom=medium)
+medium_contour_right = Border(left=thin, right=medium, top=medium, bottom=medium)
+medium_contour_top = Border(left=medium, right=medium, top=medium, bottom=thin)
+medium_contour_bottom = Border(left=medium, right=medium, top=thin, bottom=medium)
+medium_coin_bottom_left = Border(left=medium, right=thin, top=thin, bottom=medium)
+medium_coin_top_left = Border(left=medium, right=thin, top=medium, bottom=thin)
+medium_coin_bottom_right = Border(left=thin, right=medium, top=thin, bottom=medium)
+medium_coin_top_right = Border(left=thin, right=medium, top=medium, bottom=thin)
+medium_top_bottom = Border(left=thin, right=thin, top=medium, bottom=medium)
+medium_left_right = Border(left=medium, right=medium, top=thin, bottom=thin)
+medium_left_simple = Border(left=medium)

@@ -4,11 +4,13 @@ import locale
 from tkinter.filedialog import askdirectory
 from openpyxl import Workbook
 from openpyxl.formatting.rule import CellIsRule
-from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+from openpyxl.styles import Font, Alignment, PatternFill
+from borders import *
 
 locale.setlocale(locale.LC_ALL, 'fr_FR')
 
 _MSG_ERROR_INT_ = "Veuillez saisir un nombre entier."
+_MSG_ERROR_TAIL_ANNEE = "Veuillez saisir une année sur 4 chiffres."
 alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
@@ -36,7 +38,7 @@ def verifnom(nom: str, path: str):
     :param path: Dossier de destination du fichier
     :return: Nom définitif du fichier
     """
-    # Récupération de la liste des fichiers présents dans le répertoire courant
+    # Récupère la liste des fichiers présents dans le répertoire courant
     liste_fic = []
     for file in glob.glob(f"{path}/*.xlsx"):
         file = file.removesuffix('.xlsx')
@@ -45,7 +47,8 @@ def verifnom(nom: str, path: str):
     # Compteur pour le nom modifié
     i = 1
     ajout = ''
-    # Boucle cherchant si le nom de fichier existe déjà dans le répertoire
+
+    # Cherche si le nom de fichier existe déjà dans le répertoire à partir de la liste créée juste avant
     while True:
         nomok = True
         for fic in liste_fic:
@@ -68,8 +71,8 @@ def mettreenformesheetmois(sheet):
     """
     # Fusion des cellules
     list_cells_a_merge = ('A1:D2', 'E1:AA1', 'E2:G2', 'H2:J2', 'K2:M2', 'N2:Z2')
-    for i in range(len(list_cells_a_merge)):
-        sheet.merge_cells(list_cells_a_merge[i])
+    for plage in list_cells_a_merge:
+        sheet.merge_cells(plage)
 
     # Dimensionnement des colonnes
     sheet.column_dimensions['A'].width = 8.5
@@ -162,58 +165,20 @@ def mettreenformesheetmois(sheet):
     for i in range(len(list_en_tete_niv_un)):
         sheet[list_en_tete_niv_un[i]].font = font_en_tete_niv_un
 
-    # Définition des modèles de bordures
-    thin = Side(border_style="thin")
-    medium = Side(border_style="medium")
-    thin_border = Border(left=thin, right=thin, top=thin, bottom=thin)
-    medium_border_right = Border(left=thin, right=medium, top=thin, bottom=thin)
-    medium_border_left = Border(left=medium, right=thin, top=thin, bottom=thin)
-    medium_border_bottom = Border(left=thin, right=thin, top=thin, bottom=medium)
-    medium_all_borders = Border(left=medium, right=medium, top=medium, bottom=medium)
-    medium_top_bottom = Border(left=thin, right=thin, top=medium, bottom=medium)
-    medium_coin_haut_gauche = Border(left=medium, right=thin, top=medium, bottom=medium)
-    medium_coin_haut_droit = Border(left=thin, right=medium, top=medium, bottom=medium)
-    medium_coin_bas_gauche = Border(left=medium, right=thin, top=thin, bottom=medium)
-    medium_coin_bas_droit = Border(left=thin, right=medium, top=thin, bottom=medium)
+    # Définition des zones multi-cellules
+    bottom = nbligne - 1
+    liste_zones = ('E2:G2', 'H2:J2', 'K2:M2', 'N2:Z2', 'A3:D3', 'E3:G3', 'H3:J3', 'K3:M3', 'N3:Z3', f'A4:D{bottom}',
+                   f'E4:G{bottom}', f'H4:J{bottom}', f'K4:M{bottom}', f'N4:Z{bottom}', f'AA4:AA{bottom}')
 
-    # Modèle de base
-    for row in sheet[f'A3:AA{nbligne - 1}']:
-        for cell in row:
-            cell.border = thin_border
-    # Applications des bordures spécifiques
-    # Colonnes gauches
-    list_left = ("A", "H", "K", "N")
-    for col in list_left:
-        for i in range(3, nbligne):
-            sheet[f'{col}{i}'].border = medium_border_left
-    # Colonnes droites
-    list_right = ('D', 'Z', 'AA')
-    for col in list_right:
-        for i in range(3, nbligne):
-            sheet[f'{col}{i}'].border = medium_border_right
-    # Ligne 2
-    for i in range(alphabet.index('E'), len(alphabet)):
-        sheet[f'{alphabet[i]}2'].border = medium_all_borders
-    # Ligne 3
-    coin_gauche = ('A', 'E', 'H', 'K', 'N')
-    coin_droit = ('D', 'G', 'J', 'M', 'Z')
-    for i in range(0, len(alphabet)):
-        if alphabet[i] in coin_gauche:
-            sheet[f'{alphabet[i]}3'].border = medium_coin_haut_gauche
-        elif alphabet[i] in coin_droit:
-            sheet[f'{alphabet[i]}3'].border = medium_coin_haut_droit
-        else:
-            sheet[f'{alphabet[i]}3'].border = medium_top_bottom
-    sheet['AA3'].border = medium_all_borders
-    # Dernière ligne
-    for i in range(0, len(alphabet)):
-        if alphabet[i] in coin_gauche:
-            sheet[f'{alphabet[i]}{nbligne - 1}'].border = medium_coin_bas_gauche
-        elif alphabet[i] in coin_droit:
-            sheet[f'{alphabet[i]}{nbligne - 1}'].border = medium_coin_bas_droit
-        else:
-            sheet[f'{alphabet[i]}{nbligne - 1}'].border = medium_border_bottom
-    sheet[f'AA{nbligne - 1}'].border = Border(left=medium, right=medium, top=thin, bottom=medium)
+    # Application des bordures aux zones multi-cellules
+    for zone in liste_zones:
+        appliquerbordures(sheet[zone])
+
+    # Définition des zones mono-cellules
+    liste_cellules = 'AA3'
+
+    # Application des règles aux zones mono-cellules
+    sheet[liste_cellules].border = medium_all_borders
 
     # Formats du contenu des cellules
     monetaire_euro = '#,##0.00 €'
@@ -247,6 +212,7 @@ def remplirsheetmois(doc, sheet):
                       'Virements internes', 'Epargne', 'Alimentat°', 'Produits entretien',
                       'Transport', 'Hygiène', 'Invest.', 'Santé', 'Assurances', 'Divers', 'Electricité',
                       'Eau', 'Impôts')
+
     # Remplissage des champs de la ligne 3 (en-têtes)
     for i in range(len(alphabet)):
         sheet[f'{alphabet[i]}3'].value = contenu_champs[i]
@@ -290,8 +256,11 @@ def definirparamfichier():
     while True:
         try:
             annee = int(input("Veuillez saisir l'année pour laquelle vous souhaitez créer le document : "))
-            nb = definirnblignesaisie()
-            return annee, nb
+            if 999 < annee < 10000:
+                nb = definirnblignesaisie()
+                return annee, nb
+            else:
+                print(_MSG_ERROR_TAIL_ANNEE)
         except ValueError:
             print(_MSG_ERROR_INT_)
 
@@ -341,19 +310,6 @@ def mettreenformesheetbilan(sheet):
     for i in range(len(list_cells_a_merge)):
         sheet.merge_cells(list_cells_a_merge[i])
 
-    # Définition des modèles de bordures
-    thin = Side(border_style="thin")
-    medium = Side(border_style="medium")
-    thin_border = Border(left=thin, right=thin, top=thin, bottom=thin)
-    medium_border_left = Border(left=medium, right=thin, top=thin, bottom=thin)
-    medium_all_borders = Border(left=medium, right=medium, top=medium, bottom=medium)
-    medium_top_bottom = Border(left=thin, right=thin, top=medium, bottom=medium)
-    medium_contour_gauche = Border(left=medium, right=thin, top=medium, bottom=medium)
-    medium_contour_droit = Border(left=thin, right=medium, top=medium, bottom=medium)
-    medium_coin_bas_gauche = Border(left=medium, right=thin, top=thin, bottom=medium)
-    medium_coin_haut_gauche = Border(left=medium, right=thin, top=medium, bottom=thin)
-    medium_gauche_simple = Border(left=medium)
-
     # Définition des Fonts
     font_general = Font(name='Arial', size=8)
     font_general_gras = Font(name='Arial', size=8, bold=True)
@@ -372,10 +328,9 @@ def mettreenformesheetbilan(sheet):
     # Modèle de base
     for row in sheet['A1:Q16']:
         for cell in row:
-            cell.border = thin_border
+            cell.border = thin_all_borders
     for row in sheet['E19:P21']:
         for cell in row:
-            cell.border = thin_border
             cell.alignment = align_center
 
     # Application des alignements spécifiques
@@ -417,43 +372,19 @@ def mettreenformesheetbilan(sheet):
     for i in range(alphabet.index('N'), alphabet.index('Z')):
         liste_depenses.append(sheet[f'{alphabet[i + 1]}3'].value)
 
-    # Application des bordures spécifiques
-    # Tableau récapitulatif
-    for i in range(alphabet.index('E'), alphabet.index('E') + len(liste_depenses)):
-        sheet[f'{alphabet[i]}19'].border = medium_all_borders
-        if i == alphabet.index('E'):
-            sheet[f'{alphabet[i]}20'].border = medium_contour_gauche
-            sheet[f'{alphabet[i]}21'].border = medium_contour_gauche
-        elif i == alphabet.index('E') + len(liste_depenses) - 1:
-            sheet[f'{alphabet[i]}20'].border = medium_contour_droit
-            sheet[f'{alphabet[i]}21'].border = medium_contour_droit
-        else:
-            sheet[f'{alphabet[i]}20'].border = medium_top_bottom
-            sheet[f'{alphabet[i]}21'].border = medium_top_bottom
-    # Tableau détaillé
-    list_border_left = ('A', 'B', 'E', 'Q')
-    for col in list_border_left:
-        for i in range(16):
-            if i == 0:
-                rep = medium_coin_haut_gauche
-            elif i == 15:
-                rep = medium_coin_bas_gauche
-            else:
-                rep = medium_border_left
-            sheet[f'{col}{i+1}'].border = rep
-    for i in range(16):
-        sheet[f'R{i+1}'].border = medium_gauche_simple
-    for i in range(alphabet.index('Q') + 1):
-        sheet[f'{alphabet[i]}1'].border = medium_all_borders
-        if alphabet[i] == 'B' or alphabet[i] == 'E':
-            border = medium_contour_gauche
-        elif alphabet[i] == 'Q':
-            border = medium_all_borders
-        else:
-            border = medium_top_bottom
-        sheet[f'{alphabet[i]}2'].border = border
-    for i in range(alphabet.index('P') + 1):
-        sheet[f'{alphabet[i]}17'].border = Border(top=medium)
+    # Définition des zones multi-cellules
+    liste_zones = ('A1:Q16', 'B3:D16', 'E3:P16', 'B1:D1', 'E1:Q1', 'B2:D2', 'E2:P2', 'A3:A16', 'Q3:Q16',
+                   'E19:P19', 'E20:P20', 'E21:P21')
+
+    # Application des bordures aux zones multi-cellules
+    for zone in liste_zones:
+        appliquerbordures(sheet[zone])
+
+    # Définition des zones mono-cellules
+    liste_cellules = 'A2'
+
+    # Application des règles aux zones mono-cellules
+    sheet[liste_cellules].border = medium_all_borders
 
 
 def remplirsheetbilan(doc):
@@ -535,6 +466,66 @@ def cheminfichier():
     # Vérification de la disponibilité du nom de fichier dans le répertoire
     name = verifnom(name, path)
     return f'{path}/{name}.xlsx'
+
+
+def appliquerbordures(zone):
+    """
+    Applique les bordures à une zone de feuille de calcul (medium aux bordures extérieures et thin aux autres)
+    :param zone: Zone sur laquelle porte l'application des bordures
+    :return:
+    """
+    # Obtient le nombre de lignes dans la zone
+    nb = 0
+    for _ in zone:
+        nb += 1
+    idrow = 0
+    if nb == 1:
+        for row in zone:
+            idcell = 0
+            for cell in row:
+                if idcell == 0:
+                    cell.border = medium_contour_left
+                elif idcell == len(row) - 1:
+                    cell.border = medium_contour_right
+                else:
+                    cell.border = medium_top_bottom
+                idcell += 1
+    else:
+        for row in zone:
+            idcell = 0
+            if len(row) == 1:
+                for cell in row:
+                    if idrow == 0:
+                        cell.border = medium_contour_top
+                    elif idrow == nb - 1:
+                        cell.border = medium_contour_bottom
+                    else:
+                        cell.border = medium_left_right
+            else:
+                for cell in row:
+                    if idrow == 0:
+                        if idcell == 0:
+                            cell.border = medium_coin_top_left
+                        elif idcell == len(row) - 1:
+                            cell.border = medium_coin_top_right
+                        else:
+                            cell.border = medium_border_top
+                    elif idrow == nb - 1:
+                        if idcell == 0:
+                            cell.border = medium_coin_bottom_left
+                        elif idcell == len(row) - 1:
+                            cell.border = medium_coin_bottom_right
+                        else:
+                            cell.border = medium_border_bottom
+                    else:
+                        if idcell == 0:
+                            cell.border = medium_border_left
+                        elif idcell == len(row) - 1:
+                            cell.border = medium_border_right
+                        else:
+                            cell.border = thin_all_borders
+                    idcell += 1
+            idrow += 1
 
 
 # Définition du chemin de destination du fichier
