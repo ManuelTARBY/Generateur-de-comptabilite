@@ -1,10 +1,10 @@
 import glob
-
+import calendar
+import locale
+from tkinter.filedialog import askdirectory
 from openpyxl import Workbook
 from openpyxl.formatting.rule import CellIsRule
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
-import calendar
-import locale
 
 locale.setlocale(locale.LC_ALL, 'fr_FR')
 
@@ -16,7 +16,7 @@ def genererfichiercompta(annee: int):
     """
     Génère le fichier excel avec ses onglets
     :param annee: Année pour laquelle le fichier de comptabilité est créé
-    :return:
+    :return: Fichier de comptabilité
     """
     doc = Workbook()
     for i in range(12):
@@ -26,21 +26,7 @@ def genererfichiercompta(annee: int):
     doc['Sheet'].title = f"Bilan {annee}"
     mettreenformesheetbilan(doc[f'Bilan {annee}'])
     remplirsheetbilan(doc)
-    sauvegarderdoc(doc)
-
-
-def sauvegarderdoc(doc: Workbook()):
-    """
-    Enregistre le fichier de comptabilité
-    :param doc: Fichier au format .xlsx à sauvegarder
-    :return:
-    """
-    # Chemin vers le dossier de destination
-    path = ''
-    # Attribution du nom de fichier
-    nom = input("Veuillez donner un nom à votre fichier : ")
-    nom = verifnom(nom, path)
-    doc.save(f"{path}{nom}.xlsx")
+    return doc
 
 
 def verifnom(nom: str, path: str):
@@ -52,9 +38,9 @@ def verifnom(nom: str, path: str):
     """
     # Récupération de la liste des fichiers présents dans le répertoire courant
     liste_fic = []
-    for file in glob.glob(f"{path}*.xlsx"):
+    for file in glob.glob(f"{path}/*.xlsx"):
         file = file.removesuffix('.xlsx')
-        liste_fic.append(file.removeprefix(path))
+        liste_fic.append(file.removeprefix(f'{path}\\'))
 
     # Compteur pour le nom modifié
     i = 1
@@ -296,10 +282,10 @@ def remplirsheetmois(doc, sheet):
         sheet['H6'].value = f'=\'{liste_sheet[indice_sheet - 1]}\'!J4'
 
 
-def definirannee():
+def definirparamfichier():
     """
-    Permet à l'utilisateur de définir l'année pour laquelle le document sera créé
-    :return: Année de comptabilité définie par l'utilisateur
+    Permet à l'utilisateur de définir l'année comptable pour laquelle le document sera créé
+    :return: Année de comptabilité définie par l'utilisateur et nombre de lignes de saisie
     """
     while True:
         try:
@@ -472,7 +458,7 @@ def mettreenformesheetbilan(sheet):
 
 def remplirsheetbilan(doc):
     """
-    Dimensionne la feuille de calcul du bilan annuel
+    Remplit la feuille de calcul du bilan annuel
     :param doc: Document au format .xlxs
     :return: 
     """
@@ -537,6 +523,25 @@ def remplirsheetbilan(doc):
             sheet[f'{alphabet[j]}{i}'].value = f'=\'{liste_sheet[i - 5]}\'!{alphabet[j + 10]}4'
 
 
-donnees = definirannee()
+def cheminfichier():
+    """
+    Définit le chemin complet du fichier (répertoire de destination et nom de fichier)
+    :return: Chemin complet du fichier
+    """
+    # Chemin vers le répertoire de destination
+    path = f'{askdirectory(title="Choix du dossier de destination")}'
+    # Attribution du nom de fichier
+    name = input("Veuillez donner un nom à votre fichier : ")
+    # Vérification de la disponibilité du nom de fichier dans le répertoire
+    name = verifnom(name, path)
+    return f'{path}/{name}.xlsx'
+
+
+# Définition du chemin de destination du fichier
+chemin = cheminfichier()
+# Définition des paramètres du fichier (année comptable et nombre de lignes de saisie)
+donnees = definirparamfichier()
 nbligne = donnees[1] + 6
-genererfichiercompta(donnees[0])
+document = genererfichiercompta(donnees[0])
+# Enregistre le document dans l'endroit spécifié
+document.save(chemin)
