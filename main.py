@@ -1,4 +1,7 @@
+import glob
+
 from openpyxl import Workbook
+from openpyxl.formatting.rule import CellIsRule
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 import calendar
 import locale
@@ -36,7 +39,39 @@ def sauvegarderdoc(doc: Workbook()):
     path = ''
     # Attribution du nom de fichier
     nom = input("Veuillez donner un nom à votre fichier : ")
+    nom = verifnom(nom, path)
     doc.save(f"{path}{nom}.xlsx")
+
+
+def verifnom(nom: str, path: str):
+    """
+    Attribut un nom de fichier n'existant pas dans l'emplacement courant
+    :param nom: Nom du fichier à vérifier
+    :param path: Dossier de destination du fichier
+    :return: Nom définitif du fichier
+    """
+    # Récupération de la liste des fichiers présents dans le répertoire courant
+    liste_fic = []
+    for file in glob.glob(f"{path}*.xlsx"):
+        file = file.removesuffix('.xlsx')
+        liste_fic.append(file.removeprefix(path))
+
+    # Compteur pour le nom modifié
+    i = 1
+    ajout = ''
+    # Boucle cherchant si le nom de fichier existe déjà dans le répertoire
+    while True:
+        nomok = True
+        for fic in liste_fic:
+            if fic == f'{nom}{ajout}':
+                ajout = f'({i})'
+                i += 1
+                nomok = False
+            if not nomok:
+                break
+        if nomok:
+            break
+    return f'{nom}{ajout}'
 
 
 def mettreenformesheetmois(sheet):
@@ -64,13 +99,6 @@ def mettreenformesheetmois(sheet):
     for i in range(6, nbligne):
         sheet.row_dimensions[i].height = 12.5
 
-    # Application des couleurs de fond de cellule
-    for i in range(len(alphabet)):
-        sheet[f'{alphabet[i]}5'].fill = PatternFill(fgColor="00FFFF00", fill_type="solid")
-    sheet['AA5'].fill = PatternFill(fgColor="00FFFF00", fill_type="solid")
-    for i in range(4):
-        sheet[f'{alphabet[i]}4'].fill = PatternFill(fgColor="C0C0C0", fill_type="solid")
-
     # Font des en-têtes
     font_base = Font(name='Arial', size=8)
     font_intitule = Font(name='Arial', size=10)
@@ -79,12 +107,35 @@ def mettreenformesheetmois(sheet):
     font_totaux = Font(name='Arial', size=10, color='00FF0000')
     font_titre = Font(name='Arial', size=12, bold=True)
     font_en_tete_niv_un = Font(name='Arial', size=8, bold=True)
+    font_green = Font(name='Arial', size=8, color='00B050')
+    font_red_alert = Font(name='Arial', size=8, color='9C0006')
 
     # Styles d'alignement
     align_base = Alignment(vertical='center')
     align_totaux_dates = Alignment(vertical='center', horizontal='right')
     align_ligne_trois = Alignment(horizontal='center', vertical='center', wrap_text=True)
     align_titre = Alignment(horizontal='center', vertical='center')
+
+    # Définition des PatternFill
+    fill_jaune = PatternFill(fgColor="00FFFF00", fill_type="solid")
+    fill_gris = PatternFill(fgColor="C0C0C0", fill_type="solid")
+
+    # Application des couleurs de fond de cellule
+    for i in range(len(alphabet)):
+        sheet[f'{alphabet[i]}5'].fill = fill_jaune
+    sheet['AA5'].fill = fill_jaune
+    for i in range(4):
+        sheet[f'{alphabet[i]}4'].fill = fill_gris
+
+    # Définition des mises en forme conditionnelles
+    cond_format_red_alert = CellIsRule(operator='lessThan', formula=[0], stopIfTrue=False, font=font_red_alert)
+    cond_format_green = CellIsRule(operator='greaterThanOrEqual', formula=[0], stopIfTrue=False, font=font_green)
+
+    # Application des mises en forme conditionnelles
+    liste_cell_cond_format = ('G4', 'J4')
+    for cell in liste_cell_cond_format:
+        sheet.conditional_formatting.add(cell, cond_format_red_alert)
+        sheet.conditional_formatting.add(cell, cond_format_green)
 
     # Application des propriétés générales
     for row in sheet[f'A1:AA{nbligne - 1}']:
@@ -317,9 +368,20 @@ def mettreenformesheetbilan(sheet):
     medium_coin_haut_gauche = Border(left=medium, right=thin, top=medium, bottom=thin)
     medium_gauche_simple = Border(left=medium)
 
+    # Définition des Fonts
+    font_general = Font(name='Arial', size=8)
+    font_general_gras = Font(name='Arial', size=8, bold=True)
+    font_totaux = Font(name='Arial', size=10, color='00FF0000')
+    font_dix = Font(name='Arial', size=10)
+    font_dix_gras = Font(name='Arial', size=10, bold=True)
+
     # Définition des alignements
     align_center = Alignment(vertical='center', horizontal='center', wrap_text=True)
     align_droite = Alignment(vertical='center', horizontal='right')
+
+    # Définition des PatternFill
+    fill_jaune = PatternFill(fgColor="00FFFF00", fill_type="solid")
+    fill_gris = PatternFill(fgColor="C0C0C0", fill_type="solid")
 
     # Modèle de base
     for row in sheet['A1:Q16']:
@@ -339,13 +401,6 @@ def mettreenformesheetbilan(sheet):
             cell.alignment = align_droite
     sheet['Q3'].alignment = align_center
 
-    # Définition des Fonts
-    font_general = Font(name='Arial', size=8)
-    font_general_gras = Font(name='Arial', size=8, bold=True)
-    font_totaux = Font(name='Arial', size=10, color='00FF0000')
-    font_dix = Font(name='Arial', size=10)
-    font_dix_gras = Font(name='Arial', size=10, bold=True)
-
     # Application des Fonts
     for row in sheet['A2:P21']:
         for cell in row:
@@ -360,8 +415,8 @@ def mettreenformesheetbilan(sheet):
 
     # Application des couleurs de fonds de cellules
     for i in range(alphabet.index('R')):
-        sheet[f'{alphabet[i]}4'].fill = PatternFill(fgColor="00FFFF00", fill_type="solid")
-    sheet['A3'].fill = PatternFill(fgColor="C0C0C0", fill_type="solid")
+        sheet[f'{alphabet[i]}4'].fill = fill_jaune
+    sheet['A3'].fill = fill_gris
 
     # Formats du contenu des cellules
     monetaire_euro = '#,##0.00 €'
@@ -432,7 +487,7 @@ def remplirsheetbilan(doc):
     for i in range(alphabet.index('N'), alphabet.index('Z')):
         liste_depenses.append(sheet[f'{alphabet[i + 1]}3'].value)
 
-    # Remplit la liste des dépenses dans l'onglet Bilan de l'année
+    # Remplit la liste des dépenses dans l'onglet Bilan
     sheet = doc[liste_sheet[len(liste_sheet) - 1]]
     for i in range(len(liste_depenses)):
         sheet[f'{alphabet[i + 4]}2'].value = liste_depenses[i]
@@ -471,15 +526,15 @@ def remplirsheetbilan(doc):
     # Partie "Banque"
     for i in range(5, 17):
         sheet[f'B{i}'].value = \
-            f'=SUM(\'{liste_sheet[i-5]}\'!E7:\'{liste_sheet[i-5]}\'!E{nbligne - 1})+' \
-            f'SUM(\'{liste_sheet[i-5]}\'!H7:\'{liste_sheet[i-5]}\'!H{nbligne-1})'
+            f'=SUM(\'{liste_sheet[i - 5]}\'!E7:\'{liste_sheet[i - 5]}\'!E{nbligne - 1})+' \
+            f'SUM(\'{liste_sheet[i - 5]}\'!H7:\'{liste_sheet[i - 5]}\'!H{nbligne - 1})'
         sheet[f'C{i}'].value = \
             f'=SUM(\'{liste_sheet[i - 5]}\'!F7:\'{liste_sheet[i - 5]}\'!F{nbligne - 1})+' \
             f'SUM(\'{liste_sheet[i - 5]}\'!I7:\'{liste_sheet[i - 5]}\'!I{nbligne - 1})'
         sheet[f'D{i}'].value = f'=B{i}-C{i}'
     # Partie "Dépenses"
         for j in range(alphabet.index('E'), alphabet.index('P') + 1):
-            sheet[f'{alphabet[j]}{i}'].value = f'=\'{liste_sheet[i-5]}\'!{alphabet[j+10]}4'
+            sheet[f'{alphabet[j]}{i}'].value = f'=\'{liste_sheet[i - 5]}\'!{alphabet[j + 10]}4'
 
 
 donnees = definirannee()
