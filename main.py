@@ -1,6 +1,8 @@
 import glob
 import calendar
 import locale
+import tkinter
+from tkinter import *
 from tkinter.filedialog import askdirectory
 from openpyxl import Workbook
 from openpyxl.formatting.rule import CellIsRule
@@ -9,17 +11,15 @@ from borders import *
 
 locale.setlocale(locale.LC_ALL, 'fr_FR')
 
-_MSG_ERROR_INT_ = "Veuillez saisir un nombre entier."
-_MSG_ERROR_TAIL_ANNEE = "Veuillez saisir une année sur 4 chiffres."
 alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
-def genererfichiercompta(annee: int):
+def genererfichiercompta():
     """
     Génère le fichier excel avec ses onglets
-    :param annee: Année pour laquelle le fichier de comptabilité est créé
     :return: Fichier de comptabilité
     """
+    annee = int(lannee.get())
     doc = Workbook()
     for i in range(12):
         sheet = doc.create_sheet(f"{calendar.month_name[i + 1].capitalize()} {annee}", i)
@@ -31,27 +31,30 @@ def genererfichiercompta(annee: int):
     return doc
 
 
-def verifnom(nom: str, path: str):
+def verifnom():
     """
-    Attribut un nom de fichier n'existant pas dans l'emplacement courant
-    :param nom: Nom du fichier à vérifier
-    :param path: Dossier de destination du fichier
+    Attribut un nom de fichier n'existant pas dans le repertoire choisi
     :return: Nom définitif du fichier
     """
     # Récupère la liste des fichiers présents dans le répertoire courant
     liste_fic = []
+    # for file in glob.glob(f"{path}/*.xlsx"):
+    path = lblpath['text']
     for file in glob.glob(f"{path}/*.xlsx"):
         file = file.removesuffix('.xlsx')
+        # liste_fic.append(file.removeprefix(f'{path}\\'))
         liste_fic.append(file.removeprefix(f'{path}\\'))
 
     # Compteur pour le nom modifié
     i = 1
     ajout = ''
+    nom = lenom.get()
 
     # Cherche si le nom de fichier existe déjà dans le répertoire à partir de la liste créée juste avant
     while True:
         nomok = True
         for fic in liste_fic:
+            # if fic == f'{nom}{ajout}':
             if fic == f'{nom}{ajout}':
                 ajout = f'({i})'
                 i += 1
@@ -66,9 +69,10 @@ def verifnom(nom: str, path: str):
 def mettreenformesheetmois(sheet):
     """
     Dimensionne une feuille de calcul de comptabilité mensuelle
-    :param sheet: Feuille de calcul sur laquelle doivent s'appliquer les propriétés
+    :param sheet: Feuille de calcul sur laquelle les propriétés doivent s'appliquer
     :return:
     """
+    nbligne = int(lignes.get()) + 6
     # Fusion des cellules
     list_cells_a_merge = ('A1:D2', 'E1:AA1', 'E2:G2', 'H2:J2', 'K2:M2', 'N2:Z2')
     for plage in list_cells_a_merge:
@@ -199,6 +203,7 @@ def remplirsheetmois(doc, sheet):
     :param sheet: Feuille de calcul à remplir
     :return:
     """
+    nbligne = int(lignes.get()) + 6
     # Remplissage des titres
     sheet['A1'].value = 'Compte chèques'
     sheet['E1'].value = 'Feuille de comptabilité'
@@ -246,36 +251,6 @@ def remplirsheetmois(doc, sheet):
         indice_sheet = liste_sheet.index(sheet.title)
         sheet['E6'].value = f'=\'{liste_sheet[indice_sheet - 1]}\'!G4'
         sheet['H6'].value = f'=\'{liste_sheet[indice_sheet - 1]}\'!J4'
-
-
-def definirparamfichier():
-    """
-    Permet à l'utilisateur de définir l'année comptable pour laquelle le document sera créé
-    :return: Année de comptabilité définie par l'utilisateur et nombre de lignes de saisie
-    """
-    while True:
-        try:
-            annee = int(input("Veuillez saisir l'année pour laquelle vous souhaitez créer le document : "))
-            if 999 < annee < 10000:
-                nb = definirnblignesaisie()
-                return annee, nb
-            else:
-                print(_MSG_ERROR_TAIL_ANNEE)
-        except ValueError:
-            print(_MSG_ERROR_INT_)
-
-
-def definirnblignesaisie():
-    """
-    Permet à l'utilisateur de définir le nombre de ligne qu'il pourra saisir pour chaque feuille de calcul
-    :return: Nombre de ligne de saisie
-    """
-    while True:
-        try:
-            nb = int(input("Veuillez saisir le nombre de ligne de saisie : "))
-            return nb
-        except ValueError:
-            print(_MSG_ERROR_INT_)
 
 
 def mettreenformesheetbilan(sheet):
@@ -393,6 +368,7 @@ def remplirsheetbilan(doc):
     :param doc: Document au format .xlxs
     :return: 
     """
+    nbligne = int(lignes.get()) + 6
     # Récupère la liste des onglets
     liste_sheet = []
     for sheetname in doc.sheetnames:
@@ -457,15 +433,11 @@ def remplirsheetbilan(doc):
 def cheminfichier():
     """
     Définit le chemin complet du fichier (répertoire de destination et nom de fichier)
-    :return: Chemin complet du fichier
     """
     # Chemin vers le répertoire de destination
     path = f'{askdirectory(title="Choix du dossier de destination")}'
     # Attribution du nom de fichier
-    name = input("Veuillez donner un nom à votre fichier : ")
-    # Vérification de la disponibilité du nom de fichier dans le répertoire
-    name = verifnom(name, path)
-    return f'{path}/{name}.xlsx'
+    lblpath['text'] = f'{path}'
 
 
 def appliquerbordures(zone):
@@ -528,11 +500,125 @@ def appliquerbordures(zone):
             idrow += 1
 
 
-# Définition du chemin de destination du fichier
-chemin = cheminfichier()
-# Définition des paramètres du fichier (année comptable et nombre de lignes de saisie)
-donnees = definirparamfichier()
-nbligne = donnees[1] + 6
-document = genererfichiercompta(donnees[0])
-# Enregistre le document dans l'endroit spécifié
-document.save(chemin)
+def verifcontenu():
+    """
+    Vérifie si le contenu des champs de la fenêtre sont corrects
+    :return: True si ok, False dans le cas contraire
+    """
+    # Vérifie si l'année renseignée est correcte
+    if lannee.get() == '':
+        lblerror['text'] = "Vous devez saisir une année"
+        txtannee.focus()
+        return False
+    else:
+        try:
+            year = int(lannee.get())
+            if not 999 < year < 10000:
+                lblerror['text'] = "L'année doit être comprise entre 1000 et 9999"
+                return False
+        except:
+            lblerror['text'] = "L'année doit être un nombre entier"
+            return False
+        # Vérifie si le nombre de lignes de saisie renseigné est correct
+        if lignes.get() == '':
+            lblerror['text'] = "Vous devez entrer un nombre de lignes de saisie"
+            txtnblign.focus()
+            return False
+        else:
+            try:
+                ln = int(lignes.get())
+                if not 9 < ln < 1000:
+                    lblerror['text'] = "Le nombre de lignes doit être compris entre 10 et 999"
+                    return False
+            except:
+                lblerror['text'] = "Le nombre de lignes doit être un nombre entier"
+                return False
+            # Vérifie si un nom de fichier a été saisi
+            if lenom.get() == '':
+                lblerror['text'] = "Vous devez entrer un nom de fichier"
+                txtnom.focus()
+                return False
+            # Vérifie si un répertoire de destination a été choisi
+            elif lblpath['text'] == '':
+                lblerror['text'] = "Vous devez sélectionner un dossier de destination"
+                btndir.focus()
+                return False
+            else:
+                lblerror['text'] = ''
+                return True
+
+
+def creerfichier():
+    """
+    Génère le fichier de comptabilité
+    :return:
+    """
+    if verifcontenu():
+        document = genererfichiercompta()
+        # Crée le chemin complet pour l'enregistrement du fichier
+        nom = verifnom()
+        dest = lblpath['text']
+        path = f'{dest}/{nom}.xlsx'
+        # Enregistre le document dans le répertoire choisi
+        document.save(path)
+        fenetre.destroy()
+
+
+# Création de l'interface graphique
+fenetre = Tk()
+lenom = tkinter.StringVar(name='nomfic', master=fenetre)
+lannee = tkinter.StringVar(name='annee', master=fenetre)
+lignes = tkinter.StringVar(name='nbligne', master=fenetre)
+fenetre.geometry('380x285')
+fenetre.title("Création d'un fichier de comptabilité")
+fenetre.resizable(width=False, height=False)
+
+# Contenu de l'interface graphique
+# Titre
+lblprs = Label(fenetre, text="Renseignez les informations", font=('Arial', 14, "bold"))
+lblprs.pack(pady=10)
+
+# Zone du choix de l'année
+fenannee = Frame(fenetre)
+fenannee.pack(pady=6)
+lblannee = Label(fenannee, text="Année comptable :", font=('Arial', 10))
+lblannee.pack(side=LEFT)
+txtannee = Entry(fenannee, border=2, width=7, justify='center', font=('Arial', 10), textvariable=lannee)
+txtannee.pack(side=LEFT)
+
+# Zone du choix de nbde lignes
+fennblign = Frame(fenetre)
+fennblign.pack(pady=6)
+lblnblign = Label(fennblign, text="Nombre de lignes de saisie :", font=('Arial', 10))
+lblnblign.pack(side=LEFT)
+txtnblign = Entry(fennblign, border=2, width=5, justify='center', font=('Arial', 10), textvariable=lignes)
+txtnblign.pack(side=LEFT)
+
+# Zone du choix de nom
+fennom = Frame(fenetre)
+fennom.pack(pady=6)
+lblnom = Label(fennom, text="Nom du fichier :", font=('Arial', 10))
+lblnom.pack(side=LEFT)
+txtnom = Entry(fennom, border=2, width=25, font=('Arial', 10), textvariable=lenom)
+txtnom.pack(side=LEFT)
+
+# Zone du choix de répertoire
+fendir = Frame(fenetre)
+fendir.pack()
+lbldir = Label(fendir, text="Destination :", font=('Arial', 10))
+lbldir.pack(side=LEFT)
+btndir = Button(fendir, text="...", width=3, font=('Arial', 10), command=cheminfichier)
+btndir.pack(side=LEFT, padx=2)
+lblpath = Label(fendir, width=25, text='', font=('Arial', 10))
+lblpath.pack(side=LEFT)
+
+# Bouton d'envoi des réponses
+btnsend = Button(fenetre, text="Lancer la génération", font=('Arial', 12, 'bold'), bg='darkgreen', fg='white',
+                 command=creerfichier)
+btnsend.pack(pady=20)
+
+# Label qui affiche les messages d'erreur
+lblerror = Label(fenetre, text='', font=('Arial', 10), fg='red')
+lblerror.pack()
+
+fenetre.mainloop()
