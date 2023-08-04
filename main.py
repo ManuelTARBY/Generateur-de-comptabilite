@@ -6,8 +6,9 @@ from tkinter import *
 from tkinter.filedialog import askdirectory
 from openpyxl import Workbook
 from openpyxl.formatting.rule import CellIsRule
-from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.styles import Alignment, PatternFill
 from borders import *
+from fonts import *
 
 locale.setlocale(locale.LC_ALL, 'fr_FR')
 
@@ -38,11 +39,9 @@ def verifnom():
     """
     # Récupère la liste des fichiers présents dans le répertoire courant
     liste_fic = []
-    # for file in glob.glob(f"{path}/*.xlsx"):
     path = lblpath['text']
     for file in glob.glob(f"{path}/*.xlsx"):
         file = file.removesuffix('.xlsx')
-        # liste_fic.append(file.removeprefix(f'{path}\\'))
         liste_fic.append(file.removeprefix(f'{path}\\'))
 
     # Compteur pour le nom modifié
@@ -92,17 +91,6 @@ def mettreenformesheetmois(sheet):
     for i in range(6, nbligne):
         sheet.row_dimensions[i].height = 12.5
 
-    # Font des en-têtes
-    font_base = Font(name='Arial', size=8)
-    font_intitule = Font(name='Arial', size=10)
-    font_diff = Font(name='Arial', size=9)
-    font_total = Font(name='Arial', size=10, bold=True)
-    font_totaux = Font(name='Arial', size=10, color='00FF0000')
-    font_titre = Font(name='Arial', size=12, bold=True)
-    font_en_tete_niv_un = Font(name='Arial', size=8, bold=True)
-    font_green = Font(name='Arial', size=8, color='00B050')
-    font_red_alert = Font(name='Arial', size=8, color='9C0006')
-
     # Styles d'alignement
     align_base = Alignment(vertical='center')
     align_totaux_dates = Alignment(vertical='center', horizontal='right')
@@ -121,8 +109,8 @@ def mettreenformesheetmois(sheet):
         sheet[f'{alphabet[i]}4'].fill = fill_gris
 
     # Définition des mises en forme conditionnelles
-    cond_format_red_alert = CellIsRule(operator='lessThan', formula=[0], stopIfTrue=False, font=font_red_alert)
-    cond_format_green = CellIsRule(operator='greaterThanOrEqual', formula=[0], stopIfTrue=False, font=font_green)
+    cond_format_red_alert = CellIsRule(operator='lessThan', formula=[0], stopIfTrue=False, font=font_huit_red)
+    cond_format_green = CellIsRule(operator='greaterThanOrEqual', formula=[0], stopIfTrue=False, font=font_huit_green)
 
     # Application des mises en forme conditionnelles
     liste_cell_cond_format = ('G4', 'J4')
@@ -133,31 +121,31 @@ def mettreenformesheetmois(sheet):
     # Application des propriétés générales
     for row in sheet[f'A1:AA{nbligne - 1}']:
         for cell in row:
-            cell.font = font_base
+            cell.font = font_huit
             cell.alignment = align_base
-    sheet['AA2'].font = font_diff
+    sheet['AA2'].font = font_neuf
 
     # Propriétés de la colonne AA (totaux)
     for i in range(6, nbligne):
-        sheet[f'AA{i}'].font = font_totaux
+        sheet[f'AA{i}'].font = font_dix_rouge
         sheet[f'AA{i}'].alignment = align_totaux_dates
         sheet[f'A{i}'].alignment = align_totaux_dates
 
     # Propriétés de la colonne D (intitulé)
     for i in range(3, nbligne):
-        sheet[f'D{i}'].font = font_intitule
-    sheet['AA4'].font = font_intitule
+        sheet[f'D{i}'].font = font_dix
+    sheet['AA4'].font = font_dix
 
     # Propriétés des en-têtes
     for row in sheet['A1:Z2']:
         for cell in row:
-            cell.font = font_titre
+            cell.font = font_douze_bold
     for row in sheet['A1:AA3']:
         for cell in row:
             cell.alignment = align_titre
     sheet['D4'].alignment = align_titre
     sheet['AA4'].alignment = align_titre
-    cell = sheet['AA3'].font = font_total
+    cell = sheet['AA3'].font = font_dix_bold
     cell.alignment = align_titre
 
     # Application du retour à la ligne à la ligne 3
@@ -167,7 +155,7 @@ def mettreenformesheetmois(sheet):
 
     list_en_tete_niv_un = ('E2', 'H2', 'K2', 'N2')
     for i in range(len(list_en_tete_niv_un)):
-        sheet[list_en_tete_niv_un[i]].font = font_en_tete_niv_un
+        sheet[list_en_tete_niv_un[i]].font = font_huit_bold
 
     # Définition des zones multi-cellules
     bottom = nbligne - 1
@@ -285,13 +273,6 @@ def mettreenformesheetbilan(sheet):
     for i in range(len(list_cells_a_merge)):
         sheet.merge_cells(list_cells_a_merge[i])
 
-    # Définition des Fonts
-    font_general = Font(name='Arial', size=8)
-    font_general_gras = Font(name='Arial', size=8, bold=True)
-    font_totaux = Font(name='Arial', size=10, color='00FF0000')
-    font_dix = Font(name='Arial', size=10)
-    font_dix_gras = Font(name='Arial', size=10, bold=True)
-
     # Définition des alignements
     align_center = Alignment(vertical='center', horizontal='center', wrap_text=True)
     align_droite = Alignment(vertical='center', horizontal='right')
@@ -320,14 +301,14 @@ def mettreenformesheetbilan(sheet):
     # Application des Fonts
     for row in sheet['A2:P21']:
         for cell in row:
-            cell.font = font_general
-    sheet['B1'].font = font_general_gras
-    sheet['E1'].font = font_general_gras
-    sheet['Q2'].font = font_dix_gras
+            cell.font = font_huit
+    sheet['B1'].font = font_huit_bold
+    sheet['E1'].font = font_huit_bold
+    sheet['Q2'].font = font_dix_bold
     sheet['Q3'].font = font_dix
     sheet['E19'].font = font_dix
     for i in range(4, 16):
-        sheet[f'Q{i+1}'].font = font_totaux
+        sheet[f'Q{i+1}'].font = font_dix_rouge
 
     # Application des couleurs de fonds de cellules
     for i in range(alphabet.index('R')):
@@ -451,47 +432,70 @@ def appliquerbordures(zone):
     for _ in zone:
         nb += 1
     idrow = 0
+    # Si la zone ne s'étend que sur une seule ligne
     if nb == 1:
         for row in zone:
             idcell = 0
+            # Parcourt chaque cellule de la ligne
             for cell in row:
+                # Si la cellule est la première de la ligne
                 if idcell == 0:
                     cell.border = medium_contour_left
+                # Si la cellule est la dernière de la ligne
                 elif idcell == len(row) - 1:
                     cell.border = medium_contour_right
+                # Si la cellule n'est ni la première ni la dernière de la ligne
                 else:
                     cell.border = medium_top_bottom
                 idcell += 1
+    # Si la zone s'étend sur plusieurs lignes
     else:
+        # Parcourt chaque ligne de la zone
         for row in zone:
             idcell = 0
+            # Si la zone ne s'étend que sur une seule colonne
             if len(row) == 1:
+                # Parcourt chaque cellule de la colonne
                 for cell in row:
+                    # Si la cellule est la première de la colonne
                     if idrow == 0:
                         cell.border = medium_contour_top
+                    # Si la cellule est la dernière de la colonne
                     elif idrow == nb - 1:
                         cell.border = medium_contour_bottom
+                    # Si la cellule n'est ni la première ni la dernière de la colonne
                     else:
                         cell.border = medium_left_right
+            # Si la zone comporte plusieurs lignes ET plusieurs colonnes
             else:
+                # Parcourt chaque cellule de la ligne en cours
                 for cell in row:
+                    # Si la ligne est la première de la zone
                     if idrow == 0:
+                        # Si la cellule est la première de la ligne
                         if idcell == 0:
                             cell.border = medium_coin_top_left
+                        # Si la cellule est la dernière de la ligne
                         elif idcell == len(row) - 1:
                             cell.border = medium_coin_top_right
                         else:
                             cell.border = medium_border_top
+                    # Si la ligne est la dernière de la zone
                     elif idrow == nb - 1:
+                        # Si la cellule est la première de la ligne
                         if idcell == 0:
                             cell.border = medium_coin_bottom_left
+                        # Si la cellule est la dernière de la ligne
                         elif idcell == len(row) - 1:
                             cell.border = medium_coin_bottom_right
                         else:
                             cell.border = medium_border_bottom
+                    # Si la ligne n'est ni la première ni la dernière de la zone
                     else:
+                        # Si la cellule est la première de la ligne
                         if idcell == 0:
                             cell.border = medium_border_left
+                        # Si la cellule est la dernière de la ligne
                         elif idcell == len(row) - 1:
                             cell.border = medium_border_right
                         else:
@@ -516,7 +520,7 @@ def verifcontenu():
             if not 999 < year < 10000:
                 lblerror['text'] = "L'année doit être comprise entre 1000 et 9999"
                 return False
-        except:
+        except ValueError:
             lblerror['text'] = "L'année doit être un nombre entier"
             return False
         # Vérifie si le nombre de lignes de saisie renseigné est correct
@@ -530,7 +534,7 @@ def verifcontenu():
                 if not 9 < ln < 1000:
                     lblerror['text'] = "Le nombre de lignes doit être compris entre 10 et 999"
                     return False
-            except:
+            except ValueError:
                 lblerror['text'] = "Le nombre de lignes doit être un nombre entier"
                 return False
             # Vérifie si un nom de fichier a été saisi
@@ -574,6 +578,7 @@ fenetre.title("Création d'un fichier de comptabilité")
 fenetre.resizable(width=False, height=False)
 
 # Contenu de l'interface graphique
+bg_entry = '#E4FFE7'
 # Titre
 lblprs = Label(fenetre, text="Renseignez les informations", font=('Arial', 14, "bold"))
 lblprs.pack(pady=10)
@@ -583,7 +588,8 @@ fenannee = Frame(fenetre)
 fenannee.pack(pady=6)
 lblannee = Label(fenannee, text="Année comptable :", font=('Arial', 10))
 lblannee.pack(side=LEFT)
-txtannee = Entry(fenannee, border=2, width=7, justify='center', font=('Arial', 10), textvariable=lannee)
+txtannee = Entry(fenannee, border=2, width=7, justify='center', font=('Arial', 10), textvariable=lannee,
+                 bg=bg_entry)
 txtannee.pack(side=LEFT)
 
 # Zone du choix de nbde lignes
@@ -591,7 +597,8 @@ fennblign = Frame(fenetre)
 fennblign.pack(pady=6)
 lblnblign = Label(fennblign, text="Nombre de lignes de saisie :", font=('Arial', 10))
 lblnblign.pack(side=LEFT)
-txtnblign = Entry(fennblign, border=2, width=5, justify='center', font=('Arial', 10), textvariable=lignes)
+txtnblign = Entry(fennblign, border=2, width=5, justify='center', font=('Arial', 10), textvariable=lignes,
+                  bg=bg_entry)
 txtnblign.pack(side=LEFT)
 
 # Zone du choix de nom
@@ -599,7 +606,7 @@ fennom = Frame(fenetre)
 fennom.pack(pady=6)
 lblnom = Label(fennom, text="Nom du fichier :", font=('Arial', 10))
 lblnom.pack(side=LEFT)
-txtnom = Entry(fennom, border=2, width=25, font=('Arial', 10), textvariable=lenom)
+txtnom = Entry(fennom, border=2, width=25, font=('Arial', 10), textvariable=lenom, bg=bg_entry)
 txtnom.pack(side=LEFT)
 
 # Zone du choix de répertoire
@@ -607,7 +614,7 @@ fendir = Frame(fenetre)
 fendir.pack()
 lbldir = Label(fendir, text="Destination :", font=('Arial', 10))
 lbldir.pack(side=LEFT)
-btndir = Button(fendir, text="...", width=3, font=('Arial', 10), command=cheminfichier)
+btndir = Button(fendir, text="...", width=3, font=('Arial', 10), command=cheminfichier, bg=bg_entry)
 btndir.pack(side=LEFT, padx=2)
 lblpath = Label(fendir, width=25, text='', font=('Arial', 10))
 lblpath.pack(side=LEFT)
