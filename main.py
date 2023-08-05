@@ -6,13 +6,27 @@ from tkinter import *
 from tkinter.filedialog import askdirectory
 from openpyxl import Workbook
 from openpyxl.formatting.rule import CellIsRule
-from openpyxl.styles import Alignment, PatternFill
+
+from alignments import *
 from borders import *
 from fonts import *
+from patternfills import *
 
 locale.setlocale(locale.LC_ALL, 'fr_FR')
 
-alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+# Constantes
+# Nombre de lignes de la zone en-tête
+_DEBUT_LIGN_SAISIE_ = 6
+_LIB_CAISSE_ = ('Recettes', 'Dépenses', 'Situation')
+_LIB_BANQUE_ = ('Recettes', 'Dépenses', 'Situation')
+_LIB_RECETTES_ = ('Recettes diverses', 'Compte à régulariser', 'Virements internes')
+_LIB_DEPENSES_ = ('Virements internes', 'Epargne', 'Alimentat°', 'Produits entretien', 'Transport', 'Hygiène',
+                  'Invest.', 'Santé', 'Assurances', 'Divers', 'Electricité', 'Eau', 'Impôts')
+_LIB_INTIT_ = ('DATE', 'N°', 'N° CHQ', 'INTITULE')
+_NB_COL_INTIT_ = len(_LIB_INTIT_)
+_NB_COL_TOTAL_ = _NB_COL_INTIT_ + len(_LIB_CAISSE_) + len(_LIB_BANQUE_) + len(_LIB_RECETTES_) + len(_LIB_DEPENSES_) + 1
+# Liste des lettres de l'alphabet
+_ALPHABET_ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
 def genererfichiercompta():
@@ -53,7 +67,6 @@ def verifnom():
     while True:
         nomok = True
         for fic in liste_fic:
-            # if fic == f'{nom}{ajout}':
             if fic == f'{nom}{ajout}':
                 ajout = f'({i})'
                 i += 1
@@ -71,7 +84,7 @@ def mettreenformesheetmois(sheet):
     :param sheet: Feuille de calcul sur laquelle les propriétés doivent s'appliquer
     :return:
     """
-    nbligne = int(lignes.get()) + 6
+    nbligne = int(lignes.get()) + _DEBUT_LIGN_SAISIE_
     # Fusion des cellules
     list_cells_a_merge = ('A1:D2', 'E1:AA1', 'E2:G2', 'H2:J2', 'K2:M2', 'N2:Z2')
     for plage in list_cells_a_merge:
@@ -88,25 +101,15 @@ def mettreenformesheetmois(sheet):
     list_hauteur_ligne = (16, 15, 35, 24.5, 3.5)
     for i in range(len(list_hauteur_ligne)):
         sheet.row_dimensions[i + 1].height = list_hauteur_ligne[i]
-    for i in range(6, nbligne):
+    for i in range(_DEBUT_LIGN_SAISIE_, nbligne):
         sheet.row_dimensions[i].height = 12.5
 
-    # Styles d'alignement
-    align_base = Alignment(vertical='center')
-    align_totaux_dates = Alignment(vertical='center', horizontal='right')
-    align_ligne_trois = Alignment(horizontal='center', vertical='center', wrap_text=True)
-    align_titre = Alignment(horizontal='center', vertical='center')
-
-    # Définition des PatternFill
-    fill_jaune = PatternFill(fgColor="00FFFF00", fill_type="solid")
-    fill_gris = PatternFill(fgColor="C0C0C0", fill_type="solid")
-
     # Application des couleurs de fond de cellule
-    for i in range(len(alphabet)):
-        sheet[f'{alphabet[i]}5'].fill = fill_jaune
+    for i in range(_NB_COL_INTIT_):
+        sheet[f'{_ALPHABET_[i]}4'].fill = fill_gris
+    for i in range(len(_ALPHABET_)):
+        sheet[f'{_ALPHABET_[i]}5'].fill = fill_jaune
     sheet['AA5'].fill = fill_jaune
-    for i in range(4):
-        sheet[f'{alphabet[i]}4'].fill = fill_gris
 
     # Définition des mises en forme conditionnelles
     cond_format_red_alert = CellIsRule(operator='lessThan', formula=[0], stopIfTrue=False, font=font_huit_red)
@@ -126,10 +129,10 @@ def mettreenformesheetmois(sheet):
     sheet['AA2'].font = font_neuf
 
     # Propriétés de la colonne AA (totaux)
-    for i in range(6, nbligne):
+    for i in range(_DEBUT_LIGN_SAISIE_, nbligne):
         sheet[f'AA{i}'].font = font_dix_rouge
-        sheet[f'AA{i}'].alignment = align_totaux_dates
-        sheet[f'A{i}'].alignment = align_totaux_dates
+        sheet[f'AA{i}'].alignment = align_droite
+        sheet[f'A{i}'].alignment = align_droite
 
     # Propriétés de la colonne D (intitulé)
     for i in range(3, nbligne):
@@ -151,26 +154,21 @@ def mettreenformesheetmois(sheet):
     # Application du retour à la ligne à la ligne 3
     for row in sheet['E3:Z3']:
         for cell in row:
-            cell.alignment = align_ligne_trois
+            cell.alignment = align_center
 
     list_en_tete_niv_un = ('E2', 'H2', 'K2', 'N2')
     for i in range(len(list_en_tete_niv_un)):
         sheet[list_en_tete_niv_un[i]].font = font_huit_bold
 
-    # Définition des zones multi-cellules
+    # Définition des zones pour les bordures
     bottom = nbligne - 1
-    liste_zones = ('E2:G2', 'H2:J2', 'K2:M2', 'N2:Z2', 'A3:D3', 'E3:G3', 'H3:J3', 'K3:M3', 'N3:Z3', f'A4:D{bottom}',
-                   f'E4:G{bottom}', f'H4:J{bottom}', f'K4:M{bottom}', f'N4:Z{bottom}', f'AA4:AA{bottom}')
+    liste_zones = ('AA3:AA3', 'E2:G2', 'H2:J2', 'K2:M2', 'N2:Z2', 'A3:D3', 'E3:G3', 'H3:J3', 'K3:M3', 'N3:Z3',
+                   f'A4:D{bottom}', f'E4:G{bottom}', f'H4:J{bottom}', f'K4:M{bottom}', f'N4:Z{bottom}',
+                   f'AA4:AA{bottom}')
 
     # Application des bordures aux zones multi-cellules
     for zone in liste_zones:
         appliquerbordures(sheet[zone])
-
-    # Définition des zones mono-cellules
-    liste_cellules = 'AA3'
-
-    # Application des règles aux zones mono-cellules
-    sheet[liste_cellules].border = medium_all_borders
 
     # Formats du contenu des cellules
     monetaire_euro = '#,##0.00 €'
@@ -207,13 +205,13 @@ def remplirsheetmois(doc, sheet):
                       'Eau', 'Impôts')
 
     # Remplissage des champs de la ligne 3 (en-têtes)
-    for i in range(len(alphabet)):
-        sheet[f'{alphabet[i]}3'].value = contenu_champs[i]
+    for i in range(len(_ALPHABET_)):
+        sheet[f'{_ALPHABET_[i]}3'].value = contenu_champs[i]
     sheet['AA3'].value = 'TOTAL'
 
     # Remplissage des formules de calcul de la ligne 4 (totaux)
-    for i in range(4, len(alphabet)):
-        sheet[f'{alphabet[i]}4'].value = f'=SUM({alphabet[i]}6:{alphabet[i]}71)'
+    for i in range(4, len(_ALPHABET_)):
+        sheet[f'{_ALPHABET_[i]}4'].value = f'=SUM({_ALPHABET_[i]}6:{_ALPHABET_[i]}71)'
     sheet['G4'].value = '=E4-F4'
     sheet['J4'].value = '=H4-I4'
 
@@ -247,10 +245,9 @@ def mettreenformesheetbilan(sheet):
     :param sheet: Feuille de calcul concernée
     :return:
     """
-
     # Dimensionnement des colonnes
-    for i in range(1, alphabet.index('Q')):
-        sheet.column_dimensions[f'{alphabet[i]}'].width = 9
+    for i in range(1, _ALPHABET_.index('Q')):
+        sheet.column_dimensions[f'{_ALPHABET_[i]}'].width = 9
     sheet.column_dimensions['A'].width = 12
     sheet.column_dimensions['Q'].width = 12
 
@@ -273,14 +270,6 @@ def mettreenformesheetbilan(sheet):
     for i in range(len(list_cells_a_merge)):
         sheet.merge_cells(list_cells_a_merge[i])
 
-    # Définition des alignements
-    align_center = Alignment(vertical='center', horizontal='center', wrap_text=True)
-    align_droite = Alignment(vertical='center', horizontal='right')
-
-    # Définition des PatternFill
-    fill_jaune = PatternFill(fgColor="00FFFF00", fill_type="solid")
-    fill_gris = PatternFill(fgColor="C0C0C0", fill_type="solid")
-
     # Modèle de base
     for row in sheet['A1:Q16']:
         for cell in row:
@@ -293,10 +282,10 @@ def mettreenformesheetbilan(sheet):
     for row in sheet['A1:Q2']:
         for cell in row:
             cell.alignment = align_center
+    sheet['Q3'].alignment = align_center
     for row in sheet['A3:Q16']:
         for cell in row:
             cell.alignment = align_droite
-    sheet['Q3'].alignment = align_center
 
     # Application des Fonts
     for row in sheet['A2:P21']:
@@ -311,8 +300,8 @@ def mettreenformesheetbilan(sheet):
         sheet[f'Q{i+1}'].font = font_dix_rouge
 
     # Application des couleurs de fonds de cellules
-    for i in range(alphabet.index('R')):
-        sheet[f'{alphabet[i]}4'].fill = fill_jaune
+    for i in range(_ALPHABET_.index('R')):
+        sheet[f'{_ALPHABET_[i]}4'].fill = fill_jaune
     sheet['A3'].fill = fill_gris
 
     # Formats du contenu des cellules
@@ -320,27 +309,21 @@ def mettreenformesheetbilan(sheet):
     for row in sheet['B3:Q16']:
         for cell in row:
             cell.number_format = monetaire_euro
-    for i in range(alphabet.index('E'), alphabet.index('P') + 1):
-        sheet[f'{alphabet[i]}21'].number_format = monetaire_euro
+    for i in range(_ALPHABET_.index('E'), _ALPHABET_.index('P') + 1):
+        sheet[f'{_ALPHABET_[i]}21'].number_format = monetaire_euro
 
     # Récupère la liste des dépenses
     liste_depenses = []
-    for i in range(alphabet.index('N'), alphabet.index('Z')):
-        liste_depenses.append(sheet[f'{alphabet[i + 1]}3'].value)
+    for i in range(_ALPHABET_.index('N'), _ALPHABET_.index('Z')):
+        liste_depenses.append(sheet[f'{_ALPHABET_[i + 1]}3'].value)
 
     # Définition des zones multi-cellules
-    liste_zones = ('A1:Q16', 'B3:D16', 'E3:P16', 'B1:D1', 'E1:Q1', 'B2:D2', 'E2:P2', 'A3:A16', 'Q3:Q16',
+    liste_zones = ('A1:Q16', 'A2:A2', 'B3:D16', 'E3:P16', 'B1:D1', 'E1:Q1', 'B2:D2', 'E2:P2', 'A3:A16', 'Q3:Q16',
                    'E19:P19', 'E20:P20', 'E21:P21')
 
-    # Application des bordures aux zones multi-cellules
+    # Application des bordures
     for zone in liste_zones:
         appliquerbordures(sheet[zone])
-
-    # Définition des zones mono-cellules
-    liste_cellules = 'A2'
-
-    # Application des règles aux zones mono-cellules
-    sheet[liste_cellules].border = medium_all_borders
 
 
 def remplirsheetbilan(doc):
@@ -358,14 +341,14 @@ def remplirsheetbilan(doc):
 
     # Récupère la liste des dépenses
     liste_depenses = []
-    for i in range(alphabet.index('N'), alphabet.index('Z')):
-        liste_depenses.append(sheet[f'{alphabet[i + 1]}3'].value)
+    for i in range(_ALPHABET_.index('N'), _ALPHABET_.index('Z')):
+        liste_depenses.append(sheet[f'{_ALPHABET_[i + 1]}3'].value)
 
     # Remplit la liste des dépenses dans l'onglet Bilan
     sheet = doc[liste_sheet[len(liste_sheet) - 1]]
     for i in range(len(liste_depenses)):
-        sheet[f'{alphabet[i + 4]}2'].value = liste_depenses[i]
-        sheet[f'{alphabet[i + 4]}20'].value = liste_depenses[i]
+        sheet[f'{_ALPHABET_[i + 4]}2'].value = liste_depenses[i]
+        sheet[f'{_ALPHABET_[i + 4]}20'].value = liste_depenses[i]
 
     # Remplit les en-têtes
     sheet['B1'].value = 'Banque'
@@ -374,19 +357,19 @@ def remplirsheetbilan(doc):
     sheet['Q2'].value = 'TOTAL'
     list_entete = ('DATE', 'Recettes', 'Dépenses', 'Situation')
     for i in range(len(list_entete)):
-        sheet[f'{alphabet[i]}2'].value = list_entete[i]
+        sheet[f'{_ALPHABET_[i]}2'].value = list_entete[i]
 
     # Remplit les formules de calcul des sommes et des moyennes des dépenses
     sheet['B3'].value = '=SUM(B5:B16)'
     sheet['C3'].value = '=SUM(C5:C16)'
     sheet['D3'].value = '=B3-C3'
-    for i in range(alphabet.index('E'), alphabet.index('E') + len(liste_depenses)):
-        sheet[f'{alphabet[i]}3'].value = f'=SUM({alphabet[i]}5:{alphabet[i]}16)'
-        sheet[f'{alphabet[i]}21'].value = f'=AVERAGE({alphabet[i]}5:{alphabet[i]}16)'
+    for i in range(_ALPHABET_.index('E'), _ALPHABET_.index('E') + len(liste_depenses)):
+        sheet[f'{_ALPHABET_[i]}3'].value = f'=SUM({_ALPHABET_[i]}5:{_ALPHABET_[i]}16)'
+        sheet[f'{_ALPHABET_[i]}21'].value = f'=AVERAGE({_ALPHABET_[i]}5:{_ALPHABET_[i]}16)'
 
     # Remplit la cellule de total des dépenses
-    index = alphabet.index('E')
-    sheet['Q3'].value = f'=SUM(E3:{alphabet[index + len(liste_depenses) - 1]}3)'
+    index = _ALPHABET_.index('E')
+    sheet['Q3'].value = f'=SUM(E3:{_ALPHABET_[index + len(liste_depenses) - 1]}3)'
 
     # Remplit la colonne des totaux
     for i in range(5, 5 + len(liste_depenses)):
@@ -407,8 +390,8 @@ def remplirsheetbilan(doc):
             f'SUM(\'{liste_sheet[i - 5]}\'!I7:\'{liste_sheet[i - 5]}\'!I{nbligne - 1})'
         sheet[f'D{i}'].value = f'=B{i}-C{i}'
     # Partie "Dépenses"
-        for j in range(alphabet.index('E'), alphabet.index('P') + 1):
-            sheet[f'{alphabet[j]}{i}'].value = f'=\'{liste_sheet[i - 5]}\'!{alphabet[j + 10]}4'
+        for j in range(_ALPHABET_.index('E'), _ALPHABET_.index('P') + 1):
+            sheet[f'{_ALPHABET_[j]}{i}'].value = f'=\'{liste_sheet[i - 5]}\'!{_ALPHABET_[j + 10]}4'
 
 
 def cheminfichier():
@@ -427,13 +410,17 @@ def appliquerbordures(zone):
     :param zone: Zone sur laquelle porte l'application des bordures
     :return:
     """
-    # Obtient le nombre de lignes dans la zone
-    nb = 0
-    for _ in zone:
-        nb += 1
+    # Nombre de lignes dans la zone
+    nligne = len(zone)
+    # Nombre de colonnes dans la zone
+    ncolonne = len(zone[0])
     idrow = 0
     # Si la zone ne s'étend que sur une seule ligne
-    if nb == 1:
+    if nligne == 1:
+        # Si la zone ne comporte qu'une cellule
+        if ncolonne == 1:
+            zone[0][0].border = medium_all_borders
+            return
         for row in zone:
             idcell = 0
             # Parcourt chaque cellule de la ligne
@@ -461,7 +448,7 @@ def appliquerbordures(zone):
                     if idrow == 0:
                         cell.border = medium_contour_top
                     # Si la cellule est la dernière de la colonne
-                    elif idrow == nb - 1:
+                    elif idrow == nligne - 1:
                         cell.border = medium_contour_bottom
                     # Si la cellule n'est ni la première ni la dernière de la colonne
                     else:
@@ -481,7 +468,7 @@ def appliquerbordures(zone):
                         else:
                             cell.border = medium_border_top
                     # Si la ligne est la dernière de la zone
-                    elif idrow == nb - 1:
+                    elif idrow == nligne - 1:
                         # Si la cellule est la première de la ligne
                         if idcell == 0:
                             cell.border = medium_coin_bottom_left
@@ -592,7 +579,7 @@ txtannee = Entry(fenannee, border=2, width=7, justify='center', font=('Arial', 1
                  bg=bg_entry)
 txtannee.pack(side=LEFT)
 
-# Zone du choix de nbde lignes
+# Zone du choix de nb de lignes de saisie
 fennblign = Frame(fenetre)
 fennblign.pack(pady=6)
 lblnblign = Label(fennblign, text="Nombre de lignes de saisie :", font=('Arial', 10))
