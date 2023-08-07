@@ -25,8 +25,6 @@ _LIB_DEPENSES_ = ('Virements internes', 'Epargne', 'Alimentat°', 'Produits entr
 _LIB_INTIT_ = ('DATE', 'N°', 'N° CHQ', 'INTITULE')
 _NB_COL_INTIT_ = len(_LIB_INTIT_)
 _NB_COL_TOTAL_ = _NB_COL_INTIT_ + len(_LIB_CAISSE_) + len(_LIB_BANQUE_) + len(_LIB_RECETTES_) + len(_LIB_DEPENSES_) + 1
-# Liste des lettres de l'alphabet
-_ALPHABET_ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
 def genererfichiercompta():
