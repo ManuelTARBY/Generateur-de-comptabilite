@@ -708,27 +708,18 @@ def suppdepense():
         del _LIB_DEPENSES_[len(_LIB_DEPENSES_) - 1]
         affichedepenses()
     except IndexError:
-        lblerror['text'] = "La liste des dépenses est vide."
+        lblerror['text'] = "La liste des dépenses est vide"
 
 
 def affichedepenses():
     txtdep.delete(0, len(txtdep.get()))
-    lbllistdepun['text'] = ''
-    lbllistdepdeux['text'] = ''
-    lbllistdeptrois['text'] = ''
+    lbllistdep['text'] = ''
+    """lbllistdepdeux['text'] = ''
+    lbllistdeptrois['text'] = ''"""
     for i in range(len(_LIB_DEPENSES_)):
-        if i < 5:
-            if i != 0:
-                lbllistdepun['text'] += '\n'
-            lbllistdepun['text'] += f'{_LIB_DEPENSES_[i]}'
-        elif i < 10:
-            if i != 5:
-                lbllistdepdeux['text'] += '\n'
-            lbllistdepdeux['text'] += f'{_LIB_DEPENSES_[i]}'
-        else:
-            if i != 10:
-                lbllistdeptrois['text'] += '\n'
-            lbllistdeptrois['text'] += f'{_LIB_DEPENSES_[i]}'
+        if i != 0:
+            lbllistdep['text'] += ', '
+        lbllistdep['text'] += f'{_LIB_DEPENSES_[i]}'
 
 
 # Création de l'interface graphique
@@ -736,7 +727,8 @@ fenetre = Tk()
 lenom = tkinter.StringVar(name='nomfic', master=fenetre)
 lannee = tkinter.StringVar(name='annee', master=fenetre)
 lignes = tkinter.StringVar(name='nbligne', master=fenetre)
-fenetre.geometry('380x470')
+largeur = 380
+fenetre.geometry(f'{largeur}x500')
 fenetre.title("Création d'un fichier de comptabilité")
 fenetre.resizable(width=False, height=False)
 
@@ -781,36 +773,36 @@ lbldir = Label(fendir, text="Destination :", font=arial_dix)
 lbldir.pack(side=LEFT)
 btndir = Button(fendir, text="...", width=3, font=arial_dix, command=cheminfichier, bg=bg_entry)
 btndir.pack(side=LEFT, padx=2)
-lblpath = Label(fendir, width=25, text='', font=arial_dix)
-lblpath.pack(side=LEFT)
+lblpath = Label(fenetre, width=25, text='', font=arial_dix, bg=bg_entry, )
+lblpath.pack(side=TOP, pady=2, padx=10, fill=X)
+lblspace = Label(fenetre, text='')
+lblspace.pack(side=TOP)
 
 # Zone de la liste des dépenses
+lblintrolist = Label(fenetre, text='Liste des catégories de dépenses', font=arial_dix, anchor="w")
+lblintrolist.pack(side=TOP, padx=10, fill=X)
 fendep = Frame(fenetre)
 fendep.pack(side=TOP, pady=6)
 ladepense = tkinter.StringVar(name='ladepense', master=fendep)
-lbllistdepun = Label(fendep, font=arial_dix, bg=bg_entry, height=5, width=14)
-lbllistdepun.pack(side=LEFT, padx=2)
-lbllistdepdeux = Label(fendep, font=arial_dix, bg=bg_entry, height=5, width=14)
-lbllistdepdeux.pack(side=LEFT, padx=2)
-lbllistdeptrois = Label(fendep, font=arial_dix, bg=bg_entry, height=5, width=14)
-lbllistdeptrois.pack(side=LEFT, padx=2)
-txtdep = Entry(fenetre, font=arial_dix, textvariable=ladepense, bg=bg_entry)
-txtdep.pack(side=TOP, pady=7)
+lbllistdep = Label(fendep, font=arial_dix, bg=bg_entry, height=3, width=largeur, wraplength=largeur, anchor="w")
+lbllistdep.pack(side=TOP, padx=10, fill=X)
+txtdep = Entry(fendep, font=arial_dix, textvariable=ladepense, bg=bg_entry)
+txtdep.pack(side=BOTTOM, pady=7)
 
 # Zone des boutons d'ajout et de suppression
 zonebtngestliste = Frame(fenetre)
 zonebtngestliste.pack(pady=4, side=TOP)
 btnadddep = Button(zonebtngestliste, text='Ajouter', bg='green', fg='white', font=('Arial', 10, 'bold'),
                    command=adddepense)
-btnadddep.pack(pady=4, side=LEFT, padx=4)
+btnadddep.pack(pady=3, side=LEFT, padx=4)
 btnadddep = Button(zonebtngestliste, text='Supprimer', bg='red', fg='white', font=('Arial', 10, 'bold'),
                    command=suppdepense)
-btnadddep.pack(pady=4, side=LEFT, padx=4)
+btnadddep.pack(pady=3, side=LEFT, padx=4)
 
 # Bouton de création du document
 btnsend = Button(fenetre, text="Lancer la génération", font=('Arial', 12, 'bold'), bg='darkgreen', fg='white',
                  command=creerfichier)
-btnsend.pack(pady=20)
+btnsend.pack(pady=18)
 
 # Label des messages d'erreur
 lblerror = Label(fenetre, text='', font=arial_dix, fg='red')
