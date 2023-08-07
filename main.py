@@ -6,6 +6,7 @@ from tkinter import *
 from tkinter.filedialog import askdirectory
 from openpyxl import Workbook
 from openpyxl.formatting.rule import CellIsRule
+from openpyxl.utils import get_column_letter as get_c
 
 from alignments import *
 from borders import *
@@ -15,16 +16,52 @@ from patternfills import *
 locale.setlocale(locale.LC_ALL, 'fr_FR')
 
 # Constantes
-# Nombre de lignes de la zone en-tête
-_DEBUT_LIGN_SAISIE_ = 6
+# Nombre de mois dans le documents
+_NB_MOIS_ = 12
+
+# Feuille compta mensuelle
+# Nb de lignes des en-têtes
+_LIGN_COMPTE_ = 2
+_LIGN_INTIT_ = 2
+_LIGN_TITRE_ = 1
+# Numéros de la première ligne de saisie
+_DEB_LIGN_SAISIE_ = _LIGN_COMPTE_ + _LIGN_INTIT_ + 2
+# Contenu des en-têtes
+_LIB_INTIT_ = ('DATE', 'N°', 'N° CHQ', 'INTITULE')
 _LIB_CAISSE_ = ('Recettes', 'Dépenses', 'Situation')
 _LIB_BANQUE_ = ('Recettes', 'Dépenses', 'Situation')
 _LIB_RECETTES_ = ('Recettes diverses', 'Compte à régulariser', 'Virements internes')
-_LIB_DEPENSES_ = ('Virements internes', 'Epargne', 'Alimentat°', 'Produits entretien', 'Transport', 'Hygiène',
-                  'Invest.', 'Santé', 'Assurances', 'Divers', 'Electricité', 'Eau', 'Impôts')
-_LIB_INTIT_ = ('DATE', 'N°', 'N° CHQ', 'INTITULE')
+"""_LIB_DEPENSES_ = ('Virements internes', 'Epargne', 'Alimentat°', 'Produits entretien', 'Transport', 'Hygiène',
+                  'Invest.', 'Santé', 'Assurances', 'Divers', 'Electricité', 'Eau', 'Impôts')"""
+_LIB_DEPENSES_ = []
+# Nombre de colonnes de chaque section du document
+# Nombre de colonnes des différentes sections
 _NB_COL_INTIT_ = len(_LIB_INTIT_)
-_NB_COL_TOTAL_ = _NB_COL_INTIT_ + len(_LIB_CAISSE_) + len(_LIB_BANQUE_) + len(_LIB_RECETTES_) + len(_LIB_DEPENSES_) + 1
+_NB_COL_CAISSE_ = len(_LIB_CAISSE_)
+_NB_COL_BANQUE_ = len(_LIB_BANQUE_)
+_NB_COL_RECETTES_ = len(_LIB_RECETTES_)
+"""_NB_COL_DEPENSES_ = len(_LIB_DEPENSES_)"""
+# Numéro de colonnes de début des différentes sections
+_DEB_BANQUE_ = _NB_COL_INTIT_ + _NB_COL_CAISSE_ + 1
+_DEB_RECETTES_ = _NB_COL_INTIT_ + _NB_COL_CAISSE_ + _NB_COL_BANQUE_ + 1
+_DEB_DEPENSES_ = _NB_COL_INTIT_ + _NB_COL_CAISSE_ + _NB_COL_BANQUE_ + _NB_COL_RECETTES_ + 1
+# Nombre total de colonnes des tableaux mensuels
+"""_NB_COL_TOTAL_ = _NB_COL_INTIT_ + _NB_COL_CAISSE_ + _NB_COL_BANQUE_ + _NB_COL_RECETTES_ + _NB_COL_DEPENSES_ + 1"""
+
+# Feuille bilan
+# Première ligne de saisie de la feuille bilan
+_DEB_LIGN_SAISIE_B_ = 5
+# Nombre de lignes séparant le tableau détaillant les dépenses mensuelles et le tableau résumé
+_MARGE_INTER_TAB_BILAN_ = 2
+# Numéro de la colonne sur laquelle débute la section banque
+_DEB_BANQUE_BILAN_ = 2
+_DEB_DEPENSES_BILAN_ = _DEB_BANQUE_BILAN_ + _NB_COL_BANQUE_
+# Numéro correspondant à la colonne des totaux mensuels
+"""_NUM_LAST_COL_ = _DEB_DEPENSES_BILAN_ + _NB_COL_DEPENSES_"""
+# Première ligne du tableau résumé
+_L_TAB_TOTAUX_ = _MARGE_INTER_TAB_BILAN_ + _DEB_LIGN_SAISIE_B_ + _NB_MOIS_
+# Dernière ligne du tableau résumé
+_BTM_BILAN_ = _DEB_LIGN_SAISIE_B_ + _NB_MOIS_ - 1
 
 
 def genererfichiercompta():
@@ -34,7 +71,7 @@ def genererfichiercompta():
     """
     annee = int(lannee.get())
     doc = Workbook()
-    for i in range(12):
+    for i in range(_NB_MOIS_):
         sheet = doc.create_sheet(f"{calendar.month_name[i + 1].capitalize()} {annee}", i)
         mettreenformesheetmois(sheet)
         remplirsheetmois(doc, sheet)
@@ -63,15 +100,15 @@ def verifnom():
 
     # Cherche si le nom de fichier existe déjà dans le répertoire à partir de la liste créée juste avant
     while True:
-        nomok = True
+        nom_ok = True
         for fic in liste_fic:
             if fic == f'{nom}{ajout}':
                 ajout = f'({i})'
                 i += 1
-                nomok = False
-            if not nomok:
+                nom_ok = False
+            if not nom_ok:
                 break
-        if nomok:
+        if nom_ok:
             break
     return f'{nom}{ajout}'
 
@@ -82,9 +119,22 @@ def mettreenformesheetmois(sheet):
     :param sheet: Feuille de calcul sur laquelle les propriétés doivent s'appliquer
     :return:
     """
-    nbligne = int(lignes.get()) + _DEBUT_LIGN_SAISIE_
-    # Fusion des cellules
-    list_cells_a_merge = ('A1:D2', 'E1:AA1', 'E2:G2', 'H2:J2', 'K2:M2', 'N2:Z2')
+    _NB_COL_DEPENSES_ = len(_LIB_DEPENSES_)
+    _NB_COL_TOTAL_ = _NB_COL_INTIT_ + _NB_COL_CAISSE_ + _NB_COL_BANQUE_ + _NB_COL_RECETTES_ + _NB_COL_DEPENSES_ + 1
+    nbligne = int(lignes.get()) + _DEB_LIGN_SAISIE_
+    # Définition des plages de cellules à fusionner
+    list_cells_a_merge = (f'A1:{sheet.cell(column=_NB_COL_INTIT_, row=_LIGN_COMPTE_).coordinate}',  # Nom de compte
+                          f'{sheet.cell(column=_NB_COL_INTIT_ + 1, row=_LIGN_TITRE_).coordinate}:'
+                          f'{sheet.cell(column=_NB_COL_TOTAL_, row=_LIGN_TITRE_).coordinate}',  # Titre du document
+                          f'{sheet.cell(column=_NB_COL_INTIT_ + 1, row=_LIGN_TITRE_ + 1).coordinate}:'
+                          f'{sheet.cell(column=_DEB_BANQUE_ - 1, row=_LIGN_TITRE_ + 1).coordinate}',  # Caisse
+                          f'{sheet.cell(column=_DEB_BANQUE_, row=_LIGN_TITRE_ + 1).coordinate}:'
+                          f'{sheet.cell(column=_DEB_RECETTES_ - 1, row=_LIGN_TITRE_ + 1).coordinate}',  # Banque
+                          f'{sheet.cell(column=_DEB_RECETTES_, row=_LIGN_TITRE_ + 1).coordinate}:'
+                          f'{sheet.cell(column=_DEB_DEPENSES_ - 1, row=_LIGN_TITRE_ + 1).coordinate}',  # Recettes
+                          f'{sheet.cell(column=_DEB_DEPENSES_, row=_LIGN_TITRE_ + 1).coordinate}:'
+                          f'{sheet.cell(column=_NB_COL_TOTAL_ - 1, row=_LIGN_TITRE_ + 1).coordinate}')  # Dépenses
+    # Fusion des plages de cellules
     for plage in list_cells_a_merge:
         sheet.merge_cells(plage)
 
@@ -93,76 +143,101 @@ def mettreenformesheetmois(sheet):
     sheet.column_dimensions['B'].width = 4.73
     sheet.column_dimensions['C'].width = 8.82
     sheet.column_dimensions['D'].width = 41.5
-    sheet.column_dimensions['AA'].width = 10.91
+    sheet.column_dimensions[get_c(_NB_COL_TOTAL_)].width = 10.91  # Colonne des totaux
 
     # Dimensionnement des lignes
     list_hauteur_ligne = (16, 15, 35, 24.5, 3.5)
-    for i in range(len(list_hauteur_ligne)):
+    for i in range(min(len(list_hauteur_ligne), _DEB_LIGN_SAISIE_ - 1)):
         sheet.row_dimensions[i + 1].height = list_hauteur_ligne[i]
-    for i in range(_DEBUT_LIGN_SAISIE_, nbligne):
+    for i in range(_DEB_LIGN_SAISIE_, nbligne):
         sheet.row_dimensions[i].height = 12.5
 
     # Application des couleurs de fond de cellule
     for i in range(_NB_COL_INTIT_):
-        sheet[f'{_ALPHABET_[i]}4'].fill = fill_gris
-    for i in range(len(_ALPHABET_)):
-        sheet[f'{_ALPHABET_[i]}5'].fill = fill_jaune
-    sheet['AA5'].fill = fill_jaune
+        sheet[_LIGN_INTIT_ + _LIGN_COMPTE_][i].fill = fill_gris
+    for i in range(_NB_COL_TOTAL_):
+        sheet[_DEB_LIGN_SAISIE_ - 1][i].fill = fill_jaune
 
     # Définition des mises en forme conditionnelles
     cond_format_red_alert = CellIsRule(operator='lessThan', formula=[0], stopIfTrue=False, font=font_huit_red)
     cond_format_green = CellIsRule(operator='greaterThanOrEqual', formula=[0], stopIfTrue=False, font=font_huit_green)
 
     # Application des mises en forme conditionnelles
-    liste_cell_cond_format = ('G4', 'J4')
+    liste_cell_cond_format = (f'{sheet.cell(column=_DEB_BANQUE_ - 1, row=_DEB_LIGN_SAISIE_ - 2).coordinate}',
+                              f'{sheet.cell(column=_DEB_RECETTES_ - 1, row=_DEB_LIGN_SAISIE_ - 2).coordinate}')
     for cell in liste_cell_cond_format:
         sheet.conditional_formatting.add(cell, cond_format_red_alert)
         sheet.conditional_formatting.add(cell, cond_format_green)
 
     # Application des propriétés générales
-    for row in sheet[f'A1:AA{nbligne - 1}']:
+    for row in sheet[f'A1:{get_c(_NB_COL_TOTAL_)}{nbligne - 1}']:
         for cell in row:
             cell.font = font_huit
             cell.alignment = align_base
-    sheet['AA2'].font = font_neuf
+    sheet[_LIGN_TITRE_ + 1][_NB_COL_TOTAL_ - 1].font = font_neuf
 
-    # Propriétés de la colonne AA (totaux)
-    for i in range(_DEBUT_LIGN_SAISIE_, nbligne):
-        sheet[f'AA{i}'].font = font_dix_rouge
-        sheet[f'AA{i}'].alignment = align_droite
+    # Propriétés de la colonne des totaux
+    for i in range(_DEB_LIGN_SAISIE_, nbligne):
+        sheet[f'{get_c(_NB_COL_TOTAL_)}{i}'].font = font_dix_rouge
+        sheet[f'{get_c(_NB_COL_TOTAL_)}{i}'].alignment = align_droite
         sheet[f'A{i}'].alignment = align_droite
 
-    # Propriétés de la colonne D (intitulé)
+    # Propriétés de la colonne des intitulés
     for i in range(3, nbligne):
-        sheet[f'D{i}'].font = font_dix
-    sheet['AA4'].font = font_dix
+        sheet[f'{get_c(_NB_COL_INTIT_)}{i}'].font = font_dix
+    sheet[f'{get_c(_NB_COL_TOTAL_)}{_DEB_LIGN_SAISIE_ - 2}'].font = font_dix
 
     # Propriétés des en-têtes
-    for row in sheet['A1:Z2']:
+    for row in sheet[f'A1:{get_c(_NB_COL_TOTAL_)}{_LIGN_TITRE_ + 1}']:
         for cell in row:
             cell.font = font_douze_bold
-    for row in sheet['A1:AA3']:
-        for cell in row:
-            cell.alignment = align_titre
-    sheet['D4'].alignment = align_titre
-    sheet['AA4'].alignment = align_titre
-    cell = sheet['AA3'].font = font_dix_bold
-    cell.alignment = align_titre
-
-    # Application du retour à la ligne à la ligne 3
-    for row in sheet['E3:Z3']:
+    for row in sheet[f'A1:{get_c(_NB_COL_TOTAL_)}{_LIGN_COMPTE_ + 1}']:
         for cell in row:
             cell.alignment = align_center
+    sheet[f'{get_c(_NB_COL_INTIT_)}{_DEB_LIGN_SAISIE_ + 2}'].alignment = align_titre
+    sheet[f'{get_c(_NB_COL_TOTAL_)}{_DEB_LIGN_SAISIE_ - 2}'].alignment = align_titre
+    cell = sheet[f'{get_c(_NB_COL_TOTAL_)}{_LIGN_COMPTE_ + 1}'].font = font_dix_bold
+    cell.alignment = align_titre
 
-    list_en_tete_niv_un = ('E2', 'H2', 'K2', 'N2')
-    for i in range(len(list_en_tete_niv_un)):
-        sheet[list_en_tete_niv_un[i]].font = font_huit_bold
+    # En-têtes - Catégories
+    for row in sheet[(f'{get_c(_NB_COL_INTIT_ + 1)}{_LIGN_TITRE_ + 1}:'
+                      f'{get_c(_NB_COL_TOTAL_ - 1)}{_LIGN_TITRE_ + 1}')]:
+        for cell in row:
+            cell.font = font_huit_bold
 
     # Définition des zones pour les bordures
     bottom = nbligne - 1
-    liste_zones = ('AA3:AA3', 'E2:G2', 'H2:J2', 'K2:M2', 'N2:Z2', 'A3:D3', 'E3:G3', 'H3:J3', 'K3:M3', 'N3:Z3',
-                   f'A4:D{bottom}', f'E4:G{bottom}', f'H4:J{bottom}', f'K4:M{bottom}', f'N4:Z{bottom}',
-                   f'AA4:AA{bottom}')
+    liste_zones = (f'{get_c(_NB_COL_TOTAL_)}{_DEB_LIGN_SAISIE_ - 3}:'
+                   f'{get_c(_NB_COL_TOTAL_)}{_DEB_LIGN_SAISIE_ - 3}',  # cellule TOTAUX
+                   f'{get_c(_NB_COL_INTIT_ + 1)}{_LIGN_TITRE_ + 1}:'
+                   f'{get_c(_DEB_BANQUE_ - 1)}{_LIGN_TITRE_ + 1}',  # Caisse
+                   f'{sheet.cell(column=_DEB_BANQUE_, row=_LIGN_TITRE_ + 1).coordinate}:'
+                   f'{sheet.cell(column=_DEB_RECETTES_ - 1, row=_LIGN_TITRE_ + 1).coordinate}',  # Banque
+                   f'{sheet.cell(column=_DEB_RECETTES_, row=_LIGN_TITRE_ + 1).coordinate}:'
+                   f'{sheet.cell(column=_DEB_DEPENSES_ - 1, row=_LIGN_TITRE_ + 1).coordinate}',  # Recettes
+                   f'{sheet.cell(column=_DEB_DEPENSES_, row=_LIGN_TITRE_ + 1).coordinate}:'
+                   f'{sheet.cell(column=_NB_COL_TOTAL_ - 1, row=_LIGN_TITRE_ + 1).coordinate}',  # Dépenses
+                   f'{sheet.cell(column=1, row=_DEB_LIGN_SAISIE_ - 3).coordinate}:'
+                   f'{sheet.cell(column=_NB_COL_INTIT_, row=_DEB_LIGN_SAISIE_ - 3).coordinate}',  # Intitulés
+                   f'{sheet.cell(column=_NB_COL_INTIT_ + 1, row=_DEB_LIGN_SAISIE_ - 3).coordinate}:'
+                   f'{sheet.cell(column=_DEB_BANQUE_ - 1, row=_DEB_LIGN_SAISIE_ - 3).coordinate}',  # Liste Caisse
+                   f'{sheet.cell(column=_DEB_BANQUE_, row=_DEB_LIGN_SAISIE_ - 3).coordinate}:'
+                   f'{sheet.cell(column=_DEB_RECETTES_ - 1, row=_DEB_LIGN_SAISIE_ - 3).coordinate}',  # Liste Banque
+                   f'{sheet.cell(column=_DEB_RECETTES_, row=_DEB_LIGN_SAISIE_ - 3).coordinate}:'
+                   f'{sheet.cell(column=_DEB_DEPENSES_ - 1, row=_DEB_LIGN_SAISIE_ - 3).coordinate}',  # Liste Recettes
+                   f'{sheet.cell(column=_DEB_DEPENSES_, row=_DEB_LIGN_SAISIE_ - 3).coordinate}:'
+                   f'{sheet.cell(column=_NB_COL_TOTAL_ - 1, row=_DEB_LIGN_SAISIE_ - 3).coordinate}',  # Liste Dépenses
+                   f'A{_LIGN_COMPTE_ + _LIGN_INTIT_}:{get_c(_NB_COL_INTIT_)}{bottom}',  # Section intitulés
+                   f'{get_c(_NB_COL_INTIT_ + 1)}{_LIGN_COMPTE_ + _LIGN_INTIT_}:'
+                   f'{get_c(_DEB_BANQUE_ - 1)}{bottom}',  # Section Caisse
+                   f'{get_c(_DEB_BANQUE_)}{_LIGN_COMPTE_ + _LIGN_INTIT_}:'
+                   f'{get_c(_DEB_RECETTES_ - 1)}{bottom}',  # Section Banque
+                   f'{get_c(_DEB_RECETTES_)}{_LIGN_COMPTE_ + _LIGN_INTIT_}:'
+                   f'{get_c(_DEB_DEPENSES_ - 1)}{bottom}',  # Section Recettes
+                   f'{get_c(_DEB_DEPENSES_)}{_LIGN_COMPTE_ + _LIGN_INTIT_}:'
+                   f'{get_c(_NB_COL_TOTAL_ - 1)}{bottom}',  # Section Dépenses
+                   f'{get_c(_NB_COL_TOTAL_)}{_LIGN_COMPTE_ + _LIGN_INTIT_}:'
+                   f'{get_c(_NB_COL_TOTAL_)}{bottom}')  # Section totaux
 
     # Application des bordures aux zones multi-cellules
     for zone in liste_zones:
@@ -171,12 +246,13 @@ def mettreenformesheetmois(sheet):
     # Formats du contenu des cellules
     monetaire_euro = '#,##0.00 €'
     date_fr = 'dd/mm/yyyy'
-    # Colonne AA (monétaire euros deux chiffre après la virgule
-    for row in sheet[f'E4:AA{nbligne - 1}']:
+    # Colonne des totaux (monétaire euros deux chiffre après la virgule
+    for row in sheet[(f'{get_c(_NB_COL_INTIT_ + 1)}{_LIGN_COMPTE_ + _LIGN_INTIT_}:'
+                      f'{get_c(_NB_COL_TOTAL_)}{nbligne - 1}')]:
         for cell in row:
             cell.number_format = monetaire_euro
     # Colonne A (dates)
-    for i in range(6, nbligne):
+    for i in range(_DEB_LIGN_SAISIE_, nbligne):
         sheet[f'A{i}'].number_format = date_fr
 
 
@@ -187,54 +263,80 @@ def remplirsheetmois(doc, sheet):
     :param sheet: Feuille de calcul à remplir
     :return:
     """
+    _NB_COL_DEPENSES_ = len(_LIB_DEPENSES_)
+    _NUM_LAST_COL_ = _DEB_DEPENSES_BILAN_ + _NB_COL_DEPENSES_
+    _NB_COL_TOTAL_ = _NB_COL_INTIT_ + _NB_COL_CAISSE_ + _NB_COL_BANQUE_ + _NB_COL_RECETTES_ + _NB_COL_DEPENSES_ + 1
     nbligne = int(lignes.get()) + 6
     # Remplissage des titres
     sheet['A1'].value = 'Compte chèques'
-    sheet['E1'].value = 'Feuille de comptabilité'
-    sheet['D4'].value = 'totaux :'
-    sheet['E2'].value = 'Caisse'
-    sheet['H2'].value = 'Banque'
-    sheet['K2'].value = 'Recettes'
-    sheet['N2'].value = 'Dépenses'
-    contenu_champs = ('DATE', 'N°', 'N° chq', 'Intitulé', 'Recettes', 'Dépenses', 'Situation', 'Recettes', 'Dépenses',
-                      'Situation', 'Recettes diverses', 'Compte à régulariser', 'Virements internes',
-                      'Virements internes', 'Epargne', 'Alimentat°', 'Produits entretien',
-                      'Transport', 'Hygiène', 'Invest.', 'Santé', 'Assurances', 'Divers', 'Electricité',
-                      'Eau', 'Impôts')
+    sheet[f'{get_c(_NB_COL_INTIT_ + 1)}1'].value = 'Feuille de comptabilité'
+    sheet[f'{get_c(_NB_COL_INTIT_)}{_DEB_LIGN_SAISIE_ - 2}'].value = 'totaux :'
+    sheet[f'{get_c(_NB_COL_INTIT_ + 1)}{_LIGN_TITRE_ + 1}'].value = 'Caisse'
+    sheet[f'{get_c(_DEB_BANQUE_)}{_LIGN_TITRE_ + 1}'].value = 'Banque'
+    sheet[f'{get_c(_DEB_RECETTES_)}{_LIGN_TITRE_ + 1}'].value = 'Recettes'
+    sheet[f'{get_c(_DEB_DEPENSES_)}{_LIGN_TITRE_ + 1}'].value = 'Dépenses'
 
     # Remplissage des champs de la ligne 3 (en-têtes)
-    for i in range(len(_ALPHABET_)):
-        sheet[f'{_ALPHABET_[i]}3'].value = contenu_champs[i]
-    sheet['AA3'].value = 'TOTAL'
+    ligne_lib = _LIGN_TITRE_ + 2
+    # Section intitulé
+    for i in range(_NB_COL_INTIT_):
+        sheet[f'{get_c(i + 1)}{ligne_lib}'].value = _LIB_INTIT_[i]
+    # Section caisse
+    for i in range(_NB_COL_CAISSE_):
+        sheet[f'{get_c(i + _NB_COL_INTIT_ + 1)}{ligne_lib}'].value = _LIB_CAISSE_[i]
+    # Section banque
+    for i in range(_NB_COL_BANQUE_):
+        sheet[f'{get_c(i + _DEB_BANQUE_)}{ligne_lib}'].value = _LIB_BANQUE_[i]
+    # Section recettes
+    for i in range(_NB_COL_RECETTES_):
+        sheet[f'{get_c(i + _DEB_RECETTES_)}{ligne_lib}'].value = _LIB_RECETTES_[i]
+    # Section dépenses
+    for i in range(_NB_COL_DEPENSES_):
+        sheet[f'{get_c(i + _DEB_DEPENSES_)}{ligne_lib}'].value = _LIB_DEPENSES_[i]
+    # Cellule TOTAL
+    sheet[f'{get_c(_NB_COL_TOTAL_)}{ligne_lib}'].value = 'TOTAL'
 
     # Remplissage des formules de calcul de la ligne 4 (totaux)
-    for i in range(4, len(_ALPHABET_)):
-        sheet[f'{_ALPHABET_[i]}4'].value = f'=SUM({_ALPHABET_[i]}6:{_ALPHABET_[i]}71)'
-    sheet['G4'].value = '=E4-F4'
-    sheet['J4'].value = '=H4-I4'
+    for i in range(_NB_COL_INTIT_ + 1, _NB_COL_TOTAL_):
+        sheet[f'{get_c(i)}{_DEB_LIGN_SAISIE_ - 2}'].value = \
+            f'=SUM({get_c(i)}{_DEB_LIGN_SAISIE_}:{get_c(i)}{nbligne - 1})'
+    sheet[f'{get_c(_NB_COL_INTIT_ + _NB_COL_CAISSE_)}{_DEB_LIGN_SAISIE_ - 2}'].value = \
+        (f'={get_c(_NB_COL_INTIT_ + 1)}{_DEB_LIGN_SAISIE_ - 2}-'
+         f'{get_c(_NB_COL_INTIT_ + 2)}{_DEB_LIGN_SAISIE_ - 2}')
+    sheet[f'{get_c(_DEB_RECETTES_ - 1)}{_DEB_LIGN_SAISIE_ - 2}'].value = \
+        (f'={get_c(_DEB_BANQUE_)}{_DEB_LIGN_SAISIE_ - 2}-'
+         f'{get_c(_DEB_BANQUE_ + 1)}{_DEB_LIGN_SAISIE_ - 2}')
 
-    # Remplissage des formules de calcul de la colonne AA
-    sheet['AA4'].value = '=SUM(N4:Z4)'
-    for i in range(6, nbligne):
-        sheet[f'AA{i}'].value = f'=E{i}+H{i}-SUM(K{i}:M{i})-F{i}-I{i}+SUM(N{i}:Z{i})'
+    # Remplissage des formules de calcul de la colonne des totaux
+    sheet[f'{get_c(_NB_COL_TOTAL_)}{_DEB_LIGN_SAISIE_ - 2}'].value = \
+        (f'=SUM({get_c(_DEB_DEPENSES_)}{_DEB_LIGN_SAISIE_ - 2}:'
+         f'{get_c(_NB_COL_TOTAL_ - 1)}{_DEB_LIGN_SAISIE_ - 2})')
+    for i in range(_DEB_LIGN_SAISIE_, nbligne):
+        sheet[f'{get_c(_NB_COL_TOTAL_)}{i}'].value = \
+            (f'={get_c(_NB_COL_INTIT_ + 1)}{i}+{get_c(_DEB_BANQUE_)}{i}-'
+             f'SUM({get_c(_DEB_RECETTES_)}{i}:{get_c(_DEB_DEPENSES_ - 1)}{i})-'
+             f'{get_c(_NB_COL_INTIT_ + 2)}{i}-{get_c(_DEB_BANQUE_ + 1)}{i}+'
+             f'SUM({get_c(_DEB_DEPENSES_)}{i}:{get_c(_NB_COL_TOTAL_ - 1)}{i})')
 
     # Remplissage de la première ligne d'enregistrement
-    sheet['D6'].value = 'Ouverture'
+    sheet[_DEB_LIGN_SAISIE_][_NB_COL_INTIT_ - 1].value = 'Ouverture'
     month_dict = {'Janvier': '01', 'Février': '02', 'Mars': '03', 'Avril': '04', 'Mai': '05', 'Juin': '06',
                   'Juillet': '07', 'Août': '08', 'Septembre': '09', 'Octobre': '10', 'Novembre': '11', 'Décembre': '12'}
     mois = month_dict[sheet.title[:-5]]
     annee = int(sheet.title[-4:])
-    sheet['A6'].value = f'01/{mois}/{annee}'
+    sheet[_DEB_LIGN_SAISIE_][0].value = f'01/{mois}/{annee}'
 
     # Application du report des situations des mois précédents
     if sheet.title[:-5] == 'Janvier':
-        sheet['E6'].value = 0
-        sheet['H6'].value = 0
+        sheet[f'{get_c(_NB_COL_INTIT_ + 1)}{_DEB_LIGN_SAISIE_}'].value = 0
+        sheet[f'{get_c(_DEB_BANQUE_)}{_DEB_LIGN_SAISIE_}'].value = 0
     else:
         liste_sheet = doc.sheetnames
         indice_sheet = liste_sheet.index(sheet.title)
-        sheet['E6'].value = f'=\'{liste_sheet[indice_sheet - 1]}\'!G4'
-        sheet['H6'].value = f'=\'{liste_sheet[indice_sheet - 1]}\'!J4'
+        sheet[f'{get_c(_NB_COL_INTIT_ + 1)}{_DEB_LIGN_SAISIE_}'].value = \
+            f'=\'{liste_sheet[indice_sheet - 1]}\'!{get_c(_DEB_BANQUE_ - 1)}{_DEB_LIGN_SAISIE_ - 2}'
+        sheet[f'{get_c(_DEB_BANQUE_)}{_DEB_LIGN_SAISIE_}'].value = \
+            f'=\'{liste_sheet[indice_sheet - 1]}\'!{get_c(_DEB_RECETTES_ - 1)}{_DEB_LIGN_SAISIE_ - 2}'
 
 
 def mettreenformesheetbilan(sheet):
@@ -243,81 +345,96 @@ def mettreenformesheetbilan(sheet):
     :param sheet: Feuille de calcul concernée
     :return:
     """
+    _NB_COL_DEPENSES_ = len(_LIB_DEPENSES_)
+    _NUM_LAST_COL_ = _DEB_DEPENSES_BILAN_ + _NB_COL_DEPENSES_
+    print(f'Dernière colonne : {get_c(_NUM_LAST_COL_)}')
     # Dimensionnement des colonnes
-    for i in range(1, _ALPHABET_.index('Q')):
-        sheet.column_dimensions[f'{_ALPHABET_[i]}'].width = 9
+    for i in range(1, _NUM_LAST_COL_):
+        sheet.column_dimensions[f'{get_c(i)}'].width = 9
     sheet.column_dimensions['A'].width = 12
-    sheet.column_dimensions['Q'].width = 12
+    sheet.column_dimensions[f'{get_c(_NUM_LAST_COL_)}'].width = 12
 
     # Dimensionnement des lignes
     list_hauteur_ligne = (16, 35, 24.5, 3.5)
-
     # Tableau général
     for i in range(len(list_hauteur_ligne)):
-        sheet.row_dimensions[i+1].height = list_hauteur_ligne[i]
-    for i in range(5, 16):
-        sheet.row_dimensions[i + 1].height = 12.5
-
+        sheet.row_dimensions[i + 1].height = list_hauteur_ligne[i]
+    for i in range(_DEB_LIGN_SAISIE_B_, _DEB_LIGN_SAISIE_B_ + _NB_MOIS_):
+        sheet.row_dimensions[i].height = 12.5
     # Tableau totaux
     list_hauteur_ligne = (15, 20.5, 24.5)
     for i in range(len(list_hauteur_ligne)):
-        sheet.row_dimensions[i + 19].height = list_hauteur_ligne[i]
+        sheet.row_dimensions[i + _L_TAB_TOTAUX_].height = \
+            list_hauteur_ligne[i]
 
     # Fusion des cellules
-    list_cells_a_merge = ('B1:D1', 'E1:Q1', 'E19:P19')
+    list_cells_a_merge = (f'B1:{get_c(1 + _NB_COL_BANQUE_)}1',
+                          f'{get_c(_DEB_DEPENSES_BILAN_)}1:'
+                          f'{get_c(_DEB_DEPENSES_BILAN_ + _NB_COL_DEPENSES_ - 1)}1',
+                          f'{get_c(_DEB_DEPENSES_BILAN_)}{_L_TAB_TOTAUX_}:'
+                          f'{get_c(_DEB_DEPENSES_BILAN_ + _NB_COL_DEPENSES_ - 1)}{_L_TAB_TOTAUX_}')
     for i in range(len(list_cells_a_merge)):
         sheet.merge_cells(list_cells_a_merge[i])
 
-    # Modèle de base
-    for row in sheet['A1:Q16']:
-        for cell in row:
-            cell.border = thin_all_borders
-    for row in sheet['E19:P21']:
-        for cell in row:
-            cell.alignment = align_center
-
     # Application des alignements spécifiques
-    for row in sheet['A1:Q2']:
+    # Tableau principal
+    for row in sheet[f'A1:{get_c(_DEB_DEPENSES_BILAN_ + _NB_COL_DEPENSES_)}2']:
         for cell in row:
             cell.alignment = align_center
-    sheet['Q3'].alignment = align_center
-    for row in sheet['A3:Q16']:
+    sheet[f'{get_c(_NUM_LAST_COL_)}3'].alignment = align_center
+    for row in sheet[f'A3:{get_c(_NUM_LAST_COL_)}{_BTM_BILAN_}']:
         for cell in row:
             cell.alignment = align_droite
+    # Tableau résumé
+    sheet[f'{get_c(_DEB_DEPENSES_BILAN_)}{_L_TAB_TOTAUX_}'].alignment = align_center_adjust
+    for row in sheet[(f'{get_c(_DEB_DEPENSES_BILAN_)}{_L_TAB_TOTAUX_ + 1}:'
+                      f'{get_c(_DEB_DEPENSES_BILAN_ + _NB_COL_DEPENSES_)}{_L_TAB_TOTAUX_ + 2}')]:
+        for cell in row:
+            cell.alignment = align_center
 
     # Application des Fonts
-    for row in sheet['A2:P21']:
+    for row in sheet[f'A2:{get_c(_NUM_LAST_COL_ - 1)}{_L_TAB_TOTAUX_ + 2}']:
         for cell in row:
             cell.font = font_huit
     sheet['B1'].font = font_huit_bold
-    sheet['E1'].font = font_huit_bold
-    sheet['Q2'].font = font_dix_bold
-    sheet['Q3'].font = font_dix
-    sheet['E19'].font = font_dix
-    for i in range(4, 16):
-        sheet[f'Q{i+1}'].font = font_dix_rouge
+    sheet[f'{get_c(_DEB_DEPENSES_BILAN_)}1'].font = font_huit_bold
+    sheet[f'{get_c(_NUM_LAST_COL_)}2'].font = font_dix_bold
+    sheet[f'{get_c(_NUM_LAST_COL_)}3'].font = font_dix
+    sheet[f'{get_c(_DEB_DEPENSES_BILAN_)}{_L_TAB_TOTAUX_}'].font = font_dix
+    for i in range(_DEB_LIGN_SAISIE_B_, _DEB_LIGN_SAISIE_B_ + _NB_MOIS_ + 1):
+        sheet[f'{get_c(_NUM_LAST_COL_)}{i}'].font = font_dix_rouge
 
     # Application des couleurs de fonds de cellules
-    for i in range(_ALPHABET_.index('R')):
-        sheet[f'{_ALPHABET_[i]}4'].fill = fill_jaune
+    for i in range(_NUM_LAST_COL_):
+        sheet[f'{get_c(i + 1)}4'].fill = fill_jaune
     sheet['A3'].fill = fill_gris
 
     # Formats du contenu des cellules
     monetaire_euro = '#,##0.00 €'
-    for row in sheet['B3:Q16']:
+    for row in sheet[f'B3:{get_c(_NUM_LAST_COL_)}{_BTM_BILAN_}']:
         for cell in row:
             cell.number_format = monetaire_euro
-    for i in range(_ALPHABET_.index('E'), _ALPHABET_.index('P') + 1):
-        sheet[f'{_ALPHABET_[i]}21'].number_format = monetaire_euro
-
-    # Récupère la liste des dépenses
-    liste_depenses = []
-    for i in range(_ALPHABET_.index('N'), _ALPHABET_.index('Z')):
-        liste_depenses.append(sheet[f'{_ALPHABET_[i + 1]}3'].value)
+    for i in range(_DEB_DEPENSES_BILAN_, _NUM_LAST_COL_):
+        sheet[f'{get_c(i)}{_L_TAB_TOTAUX_ + 2}'].number_format = monetaire_euro
 
     # Définition des zones multi-cellules
-    liste_zones = ('A1:Q16', 'A2:A2', 'B3:D16', 'E3:P16', 'B1:D1', 'E1:Q1', 'B2:D2', 'E2:P2', 'A3:A16', 'Q3:Q16',
-                   'E19:P19', 'E20:P20', 'E21:P21')
+    liste_zones = (f'B1:{get_c(_NUM_LAST_COL_ - 1)}{_BTM_BILAN_}',  # Général
+                   'A2:A2', f'B3:{get_c(_DEB_DEPENSES_BILAN_ - 1)}{_BTM_BILAN_}',  # Données banque
+                   f'{get_c(_NUM_LAST_COL_)}2:{get_c(_NUM_LAST_COL_)}2',  # TOTAL droite
+                   f'{get_c(_DEB_DEPENSES_BILAN_)}3:'
+                   f'{get_c(_NUM_LAST_COL_ - 1)}{_BTM_BILAN_}',  # Données dépenses
+                   f'B1:{get_c(_DEB_DEPENSES_BILAN_ - 1)}1',  # Banque
+                   f'{get_c(_DEB_DEPENSES_BILAN_)}1:{get_c(_NUM_LAST_COL_ - 1)}1',  # Titre
+                   f'B2:{get_c(_DEB_DEPENSES_BILAN_ - 1)}2',  # Intitulés banque
+                   f'{get_c(_DEB_DEPENSES_BILAN_)}2:{get_c(_NUM_LAST_COL_ - 1)}2',  # Intit dép
+                   f'A3:A{_BTM_BILAN_}',  # Dates
+                   f'{get_c(_NUM_LAST_COL_)}3:{get_c(_NUM_LAST_COL_)}{_BTM_BILAN_}',  # Totaux
+                   f'{get_c(_DEB_DEPENSES_BILAN_)}{_L_TAB_TOTAUX_}:'
+                   f'{get_c(_NUM_LAST_COL_ - 1)}{_L_TAB_TOTAUX_}',  # Titre tableau résumé
+                   f'{get_c(_DEB_DEPENSES_BILAN_)}{_L_TAB_TOTAUX_ + 1}:'
+                   f'{get_c(_NUM_LAST_COL_ - 1)}{_L_TAB_TOTAUX_ + 1}',  # Intitulés des dépenses tab. résumé
+                   f'{get_c(_DEB_DEPENSES_BILAN_)}{_L_TAB_TOTAUX_ + 2}:'
+                   f'{get_c(_NUM_LAST_COL_ - 1)}{_L_TAB_TOTAUX_ + 2}')  # Résumé dépenses par type
 
     # Application des bordures
     for zone in liste_zones:
@@ -328,68 +445,79 @@ def remplirsheetbilan(doc):
     """
     Remplit la feuille de calcul du bilan annuel
     :param doc: Document au format .xlxs
-    :return: 
+    :return:
     """
+    _NB_COL_DEPENSES_ = len(_LIB_DEPENSES_)
+    _NUM_LAST_COL_ = _DEB_DEPENSES_BILAN_ + _NB_COL_DEPENSES_
     nbligne = int(lignes.get()) + 6
     # Récupère la liste des onglets
     liste_sheet = []
     for sheetname in doc.sheetnames:
         liste_sheet.append(sheetname)
-    sheet = doc[liste_sheet[0]]
 
-    # Récupère la liste des dépenses
-    liste_depenses = []
-    for i in range(_ALPHABET_.index('N'), _ALPHABET_.index('Z')):
-        liste_depenses.append(sheet[f'{_ALPHABET_[i + 1]}3'].value)
-
-    # Remplit la liste des dépenses dans l'onglet Bilan
+    # Remplit la liste des dépenses dans la feuille Bilan
     sheet = doc[liste_sheet[len(liste_sheet) - 1]]
-    for i in range(len(liste_depenses)):
-        sheet[f'{_ALPHABET_[i + 4]}2'].value = liste_depenses[i]
-        sheet[f'{_ALPHABET_[i + 4]}20'].value = liste_depenses[i]
+    for i in range(_NB_COL_DEPENSES_):
+        sheet[f'{get_c(_DEB_DEPENSES_BILAN_ + i)}2'].value = _LIB_DEPENSES_[i]
+        sheet[f'{get_c(_DEB_DEPENSES_BILAN_ + i)}{_L_TAB_TOTAUX_ + 1}'].value = _LIB_DEPENSES_[i]
 
     # Remplit les en-têtes
     sheet['B1'].value = 'Banque'
-    sheet['E1'].value = 'Dépenses'
-    sheet['E19'].value = 'Dépenses mensuelles'
-    sheet['Q2'].value = 'TOTAL'
+    sheet[f'{get_c(_DEB_DEPENSES_BILAN_)}1'].value = 'Dépenses'
+    sheet[f'{get_c(_DEB_DEPENSES_BILAN_)}{_L_TAB_TOTAUX_}'].value = 'Dépenses mensuelles moyennes'
+    sheet[f'{get_c(_NUM_LAST_COL_)}2'].value = 'TOTAL'
     list_entete = ('DATE', 'Recettes', 'Dépenses', 'Situation')
     for i in range(len(list_entete)):
-        sheet[f'{_ALPHABET_[i]}2'].value = list_entete[i]
+        sheet[f'{get_c(i + 1)}2'].value = list_entete[i]
 
     # Remplit les formules de calcul des sommes et des moyennes des dépenses
-    sheet['B3'].value = '=SUM(B5:B16)'
-    sheet['C3'].value = '=SUM(C5:C16)'
-    sheet['D3'].value = '=B3-C3'
-    for i in range(_ALPHABET_.index('E'), _ALPHABET_.index('E') + len(liste_depenses)):
-        sheet[f'{_ALPHABET_[i]}3'].value = f'=SUM({_ALPHABET_[i]}5:{_ALPHABET_[i]}16)'
-        sheet[f'{_ALPHABET_[i]}21'].value = f'=AVERAGE({_ALPHABET_[i]}5:{_ALPHABET_[i]}16)'
+    sheet[f'{get_c(_DEB_BANQUE_BILAN_)}3'].value =\
+        (f'=SUM({get_c(_DEB_BANQUE_BILAN_)}{_DEB_LIGN_SAISIE_B_}:'
+         f'{get_c(_DEB_BANQUE_BILAN_)}{_BTM_BILAN_})')
+    sheet[f'{get_c(_DEB_BANQUE_BILAN_ + 1)}3'].value =\
+        (f'=SUM({get_c((_DEB_BANQUE_BILAN_ + 1))}{_DEB_LIGN_SAISIE_B_}:'
+         f'{get_c((_DEB_BANQUE_BILAN_ + 1))}{_BTM_BILAN_})')
+    sheet[f'{get_c(_DEB_DEPENSES_BILAN_ - 1)}3'].value = \
+        f'={get_c(_DEB_BANQUE_BILAN_)}3-{get_c(_DEB_BANQUE_BILAN_ + 1)}3'
+    for i in range(_DEB_DEPENSES_BILAN_, _NUM_LAST_COL_):
+        sheet[f'{get_c(i)}3'].value =\
+            f'=SUM({get_c(i)}{_DEB_LIGN_SAISIE_B_}:{get_c(i)}{_BTM_BILAN_})'
+        sheet[f'{get_c(i)}{_L_TAB_TOTAUX_ + 2}'].value =\
+            f'=AVERAGE({get_c(i)}{_DEB_LIGN_SAISIE_B_}:{get_c(i)}{_BTM_BILAN_})'
 
     # Remplit la cellule de total des dépenses
-    index = _ALPHABET_.index('E')
-    sheet['Q3'].value = f'=SUM(E3:{_ALPHABET_[index + len(liste_depenses) - 1]}3)'
+    sheet[f'{get_c(_NUM_LAST_COL_)}3'].value =\
+        f'=SUM({get_c(_DEB_DEPENSES_BILAN_)}3:{get_c(_NUM_LAST_COL_ - 1)}3)'
 
     # Remplit la colonne des totaux
-    for i in range(5, 5 + len(liste_depenses)):
-        sheet[f'Q{i}'].value = f'=C{i}-SUM(E{i}:P{i})'
+    for i in range(_DEB_LIGN_SAISIE_B_, _DEB_LIGN_SAISIE_B_ + _NB_MOIS_):
+        sheet[f'{get_c(_NUM_LAST_COL_)}{i}'].value = \
+            (f'={get_c(_DEB_BANQUE_BILAN_ + 1)}{i}-SUM({get_c(_DEB_DEPENSES_BILAN_)}{i}:'
+             f'{get_c(_NUM_LAST_COL_ - 1)}{i})')
 
     # Remplit la colonne des mois
-    for i in range(len(liste_sheet) - 1):
-        sheet[f'A{i+5}'].value = liste_sheet[i]
+    for i in range(_NB_MOIS_):
+        sheet[f'A{_DEB_LIGN_SAISIE_B_ + i}'].value = liste_sheet[i]
 
     # Remplit le contenu du tableau principal
     # Partie "Banque"
-    for i in range(5, 17):
-        sheet[f'B{i}'].value = \
-            f'=SUM(\'{liste_sheet[i - 5]}\'!E7:\'{liste_sheet[i - 5]}\'!E{nbligne - 1})+' \
-            f'SUM(\'{liste_sheet[i - 5]}\'!H7:\'{liste_sheet[i - 5]}\'!H{nbligne - 1})'
-        sheet[f'C{i}'].value = \
-            f'=SUM(\'{liste_sheet[i - 5]}\'!F7:\'{liste_sheet[i - 5]}\'!F{nbligne - 1})+' \
-            f'SUM(\'{liste_sheet[i - 5]}\'!I7:\'{liste_sheet[i - 5]}\'!I{nbligne - 1})'
-        sheet[f'D{i}'].value = f'=B{i}-C{i}'
-    # Partie "Dépenses"
-        for j in range(_ALPHABET_.index('E'), _ALPHABET_.index('P') + 1):
-            sheet[f'{_ALPHABET_[j]}{i}'].value = f'=\'{liste_sheet[i - 5]}\'!{_ALPHABET_[j + 10]}4'
+    c_banq_b = get_c(_DEB_BANQUE_BILAN_)
+    l_saisie = _DEB_LIGN_SAISIE_ + 1
+    deb_caisse = _NB_COL_INTIT_ + 1
+    bottom = nbligne - 1
+    for i in range(_DEB_LIGN_SAISIE_B_, _DEB_LIGN_SAISIE_B_ + _NB_MOIS_):
+        feuille = liste_sheet[i - _DEB_LIGN_SAISIE_B_]
+        sheet[f'{c_banq_b}{i}'].value = \
+            f'=SUM(\'{feuille}\'!{get_c(deb_caisse)}{l_saisie}:\'{feuille}\'!{get_c(deb_caisse)}{bottom})+' \
+            f'SUM(\'{feuille}\'!{get_c(_DEB_BANQUE_)}{l_saisie}:\'{feuille}\'!{get_c(_DEB_BANQUE_)}{bottom})'
+        sheet[f'{get_c(_DEB_BANQUE_BILAN_ + 1)}{i}'].value = \
+            f'=SUM(\'{feuille}\'!{get_c(deb_caisse + 1)}{l_saisie}:\'{feuille}\'!{get_c(deb_caisse + 1)}{bottom})+' \
+            f'SUM(\'{feuille}\'!{get_c(_DEB_BANQUE_ + 1)}{l_saisie}:\'{feuille}\'!{get_c(_DEB_BANQUE_ + 1)}{bottom})'
+        sheet[f'D{i}'].value = f'={c_banq_b}{i}-{get_c(_DEB_BANQUE_BILAN_ + 1)}{i}'
+        # Partie "Dépenses"
+        for j in range(_NB_COL_DEPENSES_):
+            sheet[f'{get_c(_DEB_DEPENSES_BILAN_ + j)}{i}'].value =\
+                f'=\'{feuille}\'!{get_c(_DEB_DEPENSES_ + j)}{_DEB_LIGN_SAISIE_ - 2}'
 
 
 def cheminfichier():
@@ -532,6 +660,10 @@ def verifcontenu():
                 lblerror['text'] = "Vous devez sélectionner un dossier de destination"
                 btndir.focus()
                 return False
+            if len(_LIB_DEPENSES_) < 2:
+                lblerror['text'] = "Vous devez saisir au moins deux types de dépenses"
+                txtdep.focus()
+                return False
             else:
                 lblerror['text'] = ''
                 return True
@@ -553,17 +685,57 @@ def creerfichier():
         fenetre.destroy()
 
 
+def adddepense():
+    global _LIB_DEPENSES_
+    if len(_LIB_DEPENSES_) >= 15:
+        lblerror['text'] = "Nombre maximum de type de dépenses atteint"
+        return
+    if txtdep.get() != '':
+        if txtdep.get() in _LIB_DEPENSES_:
+            lblerror['text'] = "Cet élément est déjà présent dans la liste des dépenses"
+            return
+        else:
+            _LIB_DEPENSES_.append(txtdep.get())
+            txtdep['text'] = ''
+            affichedepenses()
+    else:
+        lblerror['text'] = "Veuillez saisir un nom de dépense pour l'ajouter"
+
+
+def suppdepense():
+    global _LIB_DEPENSES_
+    try:
+        del _LIB_DEPENSES_[len(_LIB_DEPENSES_) - 1]
+        affichedepenses()
+    except IndexError:
+        lblerror['text'] = "La liste des dépenses est vide"
+
+
+def affichedepenses():
+    txtdep.delete(0, len(txtdep.get()))
+    lbllistdep['text'] = ''
+    """lbllistdepdeux['text'] = ''
+    lbllistdeptrois['text'] = ''"""
+    for i in range(len(_LIB_DEPENSES_)):
+        if i != 0:
+            lbllistdep['text'] += ', '
+        lbllistdep['text'] += f'{_LIB_DEPENSES_[i]}'
+
+
 # Création de l'interface graphique
 fenetre = Tk()
 lenom = tkinter.StringVar(name='nomfic', master=fenetre)
 lannee = tkinter.StringVar(name='annee', master=fenetre)
 lignes = tkinter.StringVar(name='nbligne', master=fenetre)
-fenetre.geometry('380x285')
+largeur = 380
+fenetre.geometry(f'{largeur}x500')
 fenetre.title("Création d'un fichier de comptabilité")
 fenetre.resizable(width=False, height=False)
 
 # Contenu de l'interface graphique
+# Couleur de fond des Entry
 bg_entry = '#E4FFE7'
+arial_dix = ('Arial', 10)
 # Titre
 lblprs = Label(fenetre, text="Renseignez les informations", font=('Arial', 14, "bold"))
 lblprs.pack(pady=10)
@@ -571,47 +743,69 @@ lblprs.pack(pady=10)
 # Zone du choix de l'année
 fenannee = Frame(fenetre)
 fenannee.pack(pady=6)
-lblannee = Label(fenannee, text="Année comptable :", font=('Arial', 10))
+lblannee = Label(fenannee, text="Année comptable :", font=arial_dix)
 lblannee.pack(side=LEFT)
-txtannee = Entry(fenannee, border=2, width=7, justify='center', font=('Arial', 10), textvariable=lannee,
+txtannee = Entry(fenannee, border=2, width=7, justify='center', font=arial_dix, textvariable=lannee,
                  bg=bg_entry)
 txtannee.pack(side=LEFT)
 
 # Zone du choix de nb de lignes de saisie
 fennblign = Frame(fenetre)
 fennblign.pack(pady=6)
-lblnblign = Label(fennblign, text="Nombre de lignes de saisie :", font=('Arial', 10))
+lblnblign = Label(fennblign, text="Nombre de lignes de saisie :", font=arial_dix)
 lblnblign.pack(side=LEFT)
-txtnblign = Entry(fennblign, border=2, width=5, justify='center', font=('Arial', 10), textvariable=lignes,
+txtnblign = Entry(fennblign, border=2, width=5, justify='center', font=arial_dix, textvariable=lignes,
                   bg=bg_entry)
 txtnblign.pack(side=LEFT)
 
 # Zone du choix de nom
 fennom = Frame(fenetre)
 fennom.pack(pady=6)
-lblnom = Label(fennom, text="Nom du fichier :", font=('Arial', 10))
+lblnom = Label(fennom, text="Nom du fichier :", font=arial_dix)
 lblnom.pack(side=LEFT)
-txtnom = Entry(fennom, border=2, width=25, font=('Arial', 10), textvariable=lenom, bg=bg_entry)
+txtnom = Entry(fennom, border=2, width=25, font=arial_dix, textvariable=lenom, bg=bg_entry)
 txtnom.pack(side=LEFT)
 
 # Zone du choix de répertoire
 fendir = Frame(fenetre)
 fendir.pack()
-lbldir = Label(fendir, text="Destination :", font=('Arial', 10))
+lbldir = Label(fendir, text="Destination :", font=arial_dix)
 lbldir.pack(side=LEFT)
-btndir = Button(fendir, text="...", width=3, font=('Arial', 10), command=cheminfichier, bg=bg_entry)
+btndir = Button(fendir, text="...", width=3, font=arial_dix, command=cheminfichier, bg=bg_entry)
 btndir.pack(side=LEFT, padx=2)
-lblpath = Label(fendir, width=25, text='', font=('Arial', 10))
-lblpath.pack(side=LEFT)
+lblpath = Label(fenetre, width=25, text='', font=arial_dix, bg=bg_entry, )
+lblpath.pack(side=TOP, pady=2, padx=10, fill=X)
+lblspace = Label(fenetre, text='')
+lblspace.pack(side=TOP)
 
-# Bouton d'envoi des réponses
+# Zone de la liste des dépenses
+lblintrolist = Label(fenetre, text='Liste des catégories de dépenses', font=arial_dix, anchor="w")
+lblintrolist.pack(side=TOP, padx=10, fill=X)
+fendep = Frame(fenetre)
+fendep.pack(side=TOP, pady=6)
+ladepense = tkinter.StringVar(name='ladepense', master=fendep)
+lbllistdep = Label(fendep, font=arial_dix, bg=bg_entry, height=3, width=largeur, wraplength=largeur, anchor="w")
+lbllistdep.pack(side=TOP, padx=10, fill=X)
+txtdep = Entry(fendep, font=arial_dix, textvariable=ladepense, bg=bg_entry)
+txtdep.pack(side=BOTTOM, pady=7)
+
+# Zone des boutons d'ajout et de suppression
+zonebtngestliste = Frame(fenetre)
+zonebtngestliste.pack(pady=4, side=TOP)
+btnadddep = Button(zonebtngestliste, text='Ajouter', bg='green', fg='white', font=('Arial', 10, 'bold'),
+                   command=adddepense)
+btnadddep.pack(pady=3, side=LEFT, padx=4)
+btnadddep = Button(zonebtngestliste, text='Supprimer', bg='red', fg='white', font=('Arial', 10, 'bold'),
+                   command=suppdepense)
+btnadddep.pack(pady=3, side=LEFT, padx=4)
+
+# Bouton de création du document
 btnsend = Button(fenetre, text="Lancer la génération", font=('Arial', 12, 'bold'), bg='darkgreen', fg='white',
                  command=creerfichier)
-btnsend.pack(pady=20)
+btnsend.pack(pady=18)
 
-# Label qui affiche les messages d'erreur
-lblerror = Label(fenetre, text='', font=('Arial', 10), fg='red')
+# Label des messages d'erreur
+lblerror = Label(fenetre, text='', font=arial_dix, fg='red')
 lblerror.pack()
 
-# Loop
 fenetre.mainloop()
