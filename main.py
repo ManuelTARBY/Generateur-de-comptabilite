@@ -31,9 +31,9 @@ _LIB_INTIT_ = ('DATE', 'N°', 'N° CHQ', 'INTITULE')
 _LIB_CAISSE_ = ('Recettes', 'Dépenses', 'Situation')
 _LIB_BANQUE_ = ('Recettes', 'Dépenses', 'Situation')
 _LIB_RECETTES_ = ('Recettes diverses', 'Compte à régulariser', 'Virements internes')
-"""_LIB_DEPENSES_ = ('Virements internes', 'Epargne', 'Alimentat°', 'Produits entretien', 'Transport', 'Hygiène',
-                  'Invest.', 'Santé', 'Assurances', 'Divers', 'Electricité', 'Eau', 'Impôts')"""
-_LIB_DEPENSES_ = []
+_LIB_DEPENSES_ = ['Virements internes', 'Epargne', 'Alimentat°', 'Produits entretien', 'Transport', 'Hygiène',
+                  'Invest.', 'Santé', 'Assurances', 'Divers', 'Electricité', 'Eau', 'Impôts']
+"""_LIB_DEPENSES_ = []"""
 # Nombre de colonnes de chaque section du document
 # Nombre de colonnes des différentes sections
 _NB_COL_INTIT_ = len(_LIB_INTIT_)
@@ -692,18 +692,17 @@ def adddepense():
         return
     if txtdep.get() != '':
         if txtdep.get() in _LIB_DEPENSES_:
-            lblerror['text'] = "Cet élément est déjà présent dans la liste des dépenses"
+            lblerror['text'] = "Cette catégorie est déjà présente dans la liste"
             return
         else:
             _LIB_DEPENSES_.append(txtdep.get())
             txtdep['text'] = ''
             affichedepenses()
     else:
-        lblerror['text'] = "Veuillez saisir un nom de dépense pour l'ajouter"
+        lblerror['text'] = "Veuillez saisir une catégorie de dépense pour l'ajouter"
 
 
 def suppdepense():
-    global _LIB_DEPENSES_
     try:
         del _LIB_DEPENSES_[len(_LIB_DEPENSES_) - 1]
         affichedepenses()
@@ -714,11 +713,9 @@ def suppdepense():
 def affichedepenses():
     txtdep.delete(0, len(txtdep.get()))
     lbllistdep['text'] = ''
-    """lbllistdepdeux['text'] = ''
-    lbllistdeptrois['text'] = ''"""
     for i in range(len(_LIB_DEPENSES_)):
         if i != 0:
-            lbllistdep['text'] += ', '
+            lbllistdep['text'] += ' | '
         lbllistdep['text'] += f'{_LIB_DEPENSES_[i]}'
 
 
@@ -733,11 +730,11 @@ fenetre.title("Création d'un fichier de comptabilité")
 fenetre.resizable(width=False, height=False)
 
 # Contenu de l'interface graphique
-# Couleur de fond des Entry
+# Couleur de fond des Entry et Label
 bg_entry = '#E4FFE7'
 arial_dix = ('Arial', 10)
 # Titre
-lblprs = Label(fenetre, text="Renseignez les informations", font=('Arial', 14, "bold"))
+lblprs = Label(fenetre, text="Informations du document", font=('Arial', 14, "bold"))
 lblprs.pack(pady=10)
 
 # Zone du choix de l'année
@@ -773,7 +770,7 @@ lbldir = Label(fendir, text="Destination :", font=arial_dix)
 lbldir.pack(side=LEFT)
 btndir = Button(fendir, text="...", width=3, font=arial_dix, command=cheminfichier, bg=bg_entry)
 btndir.pack(side=LEFT, padx=2)
-lblpath = Label(fenetre, width=25, text='', font=arial_dix, bg=bg_entry, )
+lblpath = Label(fenetre, width=25, text='', font=arial_dix, bg=bg_entry, anchor="w", wraplength=largeur)
 lblpath.pack(side=TOP, pady=2, padx=10, fill=X)
 lblspace = Label(fenetre, text='')
 lblspace.pack(side=TOP)
@@ -784,7 +781,7 @@ lblintrolist.pack(side=TOP, padx=10, fill=X)
 fendep = Frame(fenetre)
 fendep.pack(side=TOP, pady=6)
 ladepense = tkinter.StringVar(name='ladepense', master=fendep)
-lbllistdep = Label(fendep, font=arial_dix, bg=bg_entry, height=3, width=largeur, wraplength=largeur, anchor="w")
+lbllistdep = Label(fendep, font=arial_dix, bg=bg_entry, height=3, width=largeur, wraplength=largeur - 20, anchor="w")
 lbllistdep.pack(side=TOP, padx=10, fill=X)
 txtdep = Entry(fendep, font=arial_dix, textvariable=ladepense, bg=bg_entry)
 txtdep.pack(side=BOTTOM, pady=7)
@@ -808,4 +805,5 @@ btnsend.pack(pady=18)
 lblerror = Label(fenetre, text='', font=arial_dix, fg='red')
 lblerror.pack()
 
+affichedepenses()
 fenetre.mainloop()
