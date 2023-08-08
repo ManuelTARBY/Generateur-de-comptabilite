@@ -682,27 +682,38 @@ def creerfichier():
         path = f'{dest}/{nom}.xlsx'
         # Enregistre le document dans le répertoire choisi
         document.save(path)
+        # Ferme la fenêtre
         fenetre.destroy()
 
 
-def adddepense():
-    global _LIB_DEPENSES_
-    if len(_LIB_DEPENSES_) >= 15:
-        lblerror['text'] = "Nombre maximum de type de dépenses atteint"
-        return
-    if txtdep.get() != '':
-        if txtdep.get() in _LIB_DEPENSES_:
-            lblerror['text'] = "Cette catégorie est déjà présente dans la liste"
+def adddepense(event):
+    """
+    Ajoute la dépense dans la liste des catégories de dépenses
+    :param event: Evènement
+    :return:
+    """
+    if event.widget:
+        global _LIB_DEPENSES_
+        if len(_LIB_DEPENSES_) >= 15:
+            lblerror['text'] = "Nombre maximum de type de dépenses atteint"
             return
+        if txtdep.get() != '':
+            if txtdep.get() in _LIB_DEPENSES_:
+                lblerror['text'] = "Cette catégorie est déjà présente dans la liste"
+                return
+            else:
+                _LIB_DEPENSES_.append(txtdep.get())
+                txtdep['text'] = ''
+                affichedepenses()
         else:
-            _LIB_DEPENSES_.append(txtdep.get())
-            txtdep['text'] = ''
-            affichedepenses()
-    else:
-        lblerror['text'] = "Veuillez saisir une catégorie de dépense pour l'ajouter"
+            lblerror['text'] = "Veuillez saisir une catégorie de dépense pour l'ajouter"
 
 
 def suppdepense():
+    """
+    Supprime la dernière catégorie de dépenses de la liste
+    :return:
+    """
     try:
         del _LIB_DEPENSES_[len(_LIB_DEPENSES_) - 1]
         affichedepenses()
@@ -711,8 +722,13 @@ def suppdepense():
 
 
 def affichedepenses():
+    """
+    Met à jour l'affichage des catégories de dépenses
+    :return:
+    """
     txtdep.delete(0, len(txtdep.get()))
     lbllistdep['text'] = ''
+    lblerror['text'] = ''
     for i in range(len(_LIB_DEPENSES_)):
         if i != 0:
             lbllistdep['text'] += ' | '
@@ -784,13 +800,14 @@ ladepense = tkinter.StringVar(name='ladepense', master=fendep)
 lbllistdep = Label(fendep, font=arial_dix, bg=bg_entry, height=3, width=largeur, wraplength=largeur - 20, anchor="w")
 lbllistdep.pack(side=TOP, padx=10, fill=X)
 txtdep = Entry(fendep, font=arial_dix, textvariable=ladepense, bg=bg_entry)
+txtdep.bind('<Return>', adddepense)
 txtdep.pack(side=BOTTOM, pady=7)
 
 # Zone des boutons d'ajout et de suppression
 zonebtngestliste = Frame(fenetre)
 zonebtngestliste.pack(pady=4, side=TOP)
-btnadddep = Button(zonebtngestliste, text='Ajouter', bg='green', fg='white', font=('Arial', 10, 'bold'),
-                   command=adddepense)
+btnadddep = Button(zonebtngestliste, text='Ajouter', bg='green', fg='white', font=('Arial', 10, 'bold'))
+btnadddep.bind('<Button-1>', adddepense)
 btnadddep.pack(pady=3, side=LEFT, padx=4)
 btnadddep = Button(zonebtngestliste, text='Supprimer', bg='red', fg='white', font=('Arial', 10, 'bold'),
                    command=suppdepense)
