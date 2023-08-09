@@ -5,7 +5,7 @@ import tkinter
 from tkinter import *
 from tkinter.filedialog import askdirectory
 from openpyxl import Workbook
-from openpyxl.formatting.rule import CellIsRule
+# from openpyxl.formatting.rule import CellIsRule
 from openpyxl.utils import get_column_letter as get_c
 
 from alignments import *
@@ -33,31 +33,24 @@ _LIB_BANQUE_ = ('Recettes', 'Dépenses', 'Situation')
 _LIB_RECETTES_ = ('Recettes diverses', 'Compte à régulariser', 'Virements internes')
 _LIB_DEPENSES_ = ['Virements internes', 'Epargne', 'Alimentat°', 'Produits entretien', 'Transport', 'Hygiène',
                   'Invest.', 'Santé', 'Assurances', 'Divers', 'Electricité', 'Eau', 'Impôts']
-"""_LIB_DEPENSES_ = []"""
 # Nombre de colonnes de chaque section du document
-# Nombre de colonnes des différentes sections
 _NB_COL_INTIT_ = len(_LIB_INTIT_)
 _NB_COL_CAISSE_ = len(_LIB_CAISSE_)
 _NB_COL_BANQUE_ = len(_LIB_BANQUE_)
 _NB_COL_RECETTES_ = len(_LIB_RECETTES_)
-"""_NB_COL_DEPENSES_ = len(_LIB_DEPENSES_)"""
 # Numéro de colonnes de début des différentes sections
 _DEB_BANQUE_ = _NB_COL_INTIT_ + _NB_COL_CAISSE_ + 1
 _DEB_RECETTES_ = _NB_COL_INTIT_ + _NB_COL_CAISSE_ + _NB_COL_BANQUE_ + 1
 _DEB_DEPENSES_ = _NB_COL_INTIT_ + _NB_COL_CAISSE_ + _NB_COL_BANQUE_ + _NB_COL_RECETTES_ + 1
-# Nombre total de colonnes des tableaux mensuels
-"""_NB_COL_TOTAL_ = _NB_COL_INTIT_ + _NB_COL_CAISSE_ + _NB_COL_BANQUE_ + _NB_COL_RECETTES_ + _NB_COL_DEPENSES_ + 1"""
 
 # Feuille bilan
-# Première ligne de saisie de la feuille bilan
+# Numéros de la première ligne de saisie de la feuille bilan
 _DEB_LIGN_SAISIE_B_ = 5
 # Nombre de lignes séparant le tableau détaillant les dépenses mensuelles et le tableau résumé
 _MARGE_INTER_TAB_BILAN_ = 2
 # Numéro de la colonne sur laquelle débute la section banque
 _DEB_BANQUE_BILAN_ = 2
 _DEB_DEPENSES_BILAN_ = _DEB_BANQUE_BILAN_ + _NB_COL_BANQUE_
-# Numéro correspondant à la colonne des totaux mensuels
-"""_NUM_LAST_COL_ = _DEB_DEPENSES_BILAN_ + _NB_COL_DEPENSES_"""
 # Première ligne du tableau résumé
 _L_TAB_TOTAUX_ = _MARGE_INTER_TAB_BILAN_ + _DEB_LIGN_SAISIE_B_ + _NB_MOIS_
 # Dernière ligne du tableau résumé
@@ -115,7 +108,7 @@ def verifnom():
 
 def mettreenformesheetmois(sheet):
     """
-    Dimensionne une feuille de calcul de comptabilité mensuelle
+    Dimensionne la feuille de calcul de comptabilité mensuelle
     :param sheet: Feuille de calcul sur laquelle les propriétés doivent s'appliquer
     :return:
     """
@@ -134,6 +127,7 @@ def mettreenformesheetmois(sheet):
                           f'{sheet.cell(column=_DEB_DEPENSES_ - 1, row=_LIGN_TITRE_ + 1).coordinate}',  # Recettes
                           f'{sheet.cell(column=_DEB_DEPENSES_, row=_LIGN_TITRE_ + 1).coordinate}:'
                           f'{sheet.cell(column=_NB_COL_TOTAL_ - 1, row=_LIGN_TITRE_ + 1).coordinate}')  # Dépenses
+
     # Fusion des plages de cellules
     for plage in list_cells_a_merge:
         sheet.merge_cells(plage)
@@ -157,8 +151,12 @@ def mettreenformesheetmois(sheet):
         sheet[_LIGN_INTIT_ + _LIGN_COMPTE_][i].fill = fill_gris
     for i in range(_NB_COL_TOTAL_):
         sheet[_DEB_LIGN_SAISIE_ - 1][i].fill = fill_jaune
+    # Colonnes situation
+    for i in range(_DEB_LIGN_SAISIE_, nbligne):
+        sheet[f'{get_c(_DEB_BANQUE_ - 1)}{i}'].fill = fill_gris
+        sheet[f'{get_c(_DEB_RECETTES_ - 1)}{i}'].fill = fill_gris
 
-    # Définition des mises en forme conditionnelles
+    """# Définition des mises en forme conditionnelles
     cond_format_red_alert = CellIsRule(operator='lessThan', formula=[0], stopIfTrue=False, font=font_huit_red)
     cond_format_green = CellIsRule(operator='greaterThanOrEqual', formula=[0], stopIfTrue=False, font=font_huit_green)
 
@@ -167,7 +165,7 @@ def mettreenformesheetmois(sheet):
                               f'{sheet.cell(column=_DEB_RECETTES_ - 1, row=_DEB_LIGN_SAISIE_ - 2).coordinate}')
     for cell in liste_cell_cond_format:
         sheet.conditional_formatting.add(cell, cond_format_red_alert)
-        sheet.conditional_formatting.add(cell, cond_format_green)
+        sheet.conditional_formatting.add(cell, cond_format_green)"""
 
     # Application des propriétés générales
     for row in sheet[f'A1:{get_c(_NB_COL_TOTAL_)}{nbligne - 1}']:
@@ -251,7 +249,7 @@ def mettreenformesheetmois(sheet):
                       f'{get_c(_NB_COL_TOTAL_)}{nbligne - 1}')]:
         for cell in row:
             cell.number_format = monetaire_euro
-    # Colonne A (dates)
+    # Colonne des dates
     for i in range(_DEB_LIGN_SAISIE_, nbligne):
         sheet[f'A{i}'].number_format = date_fr
 
@@ -318,6 +316,19 @@ def remplirsheetmois(doc, sheet):
              f'{get_c(_NB_COL_INTIT_ + 2)}{i}-{get_c(_DEB_BANQUE_ + 1)}{i}+'
              f'SUM({get_c(_DEB_DEPENSES_)}{i}:{get_c(_NB_COL_TOTAL_ - 1)}{i})')
 
+    # Remplissage des formules de calcul de la situation à chaque ligne
+    for i in range(_DEB_LIGN_SAISIE_, nbligne):
+        if i == _DEB_LIGN_SAISIE_:
+            formule_b = f'={get_c(_DEB_BANQUE_)}{_DEB_LIGN_SAISIE_} - {get_c(_DEB_BANQUE_ + 1)}{_DEB_LIGN_SAISIE_}'
+            formule_c = (f'={get_c(_NB_COL_INTIT_ + 1)}{_DEB_LIGN_SAISIE_} -'
+                         f'{get_c(_NB_COL_INTIT_ + 2)}{_DEB_LIGN_SAISIE_}')
+        else:
+            formule_b = f'={get_c(_DEB_RECETTES_ - 1)}{i - 1} + {get_c(_DEB_BANQUE_)}{i} - {get_c(_DEB_BANQUE_ + 1)}{i}'
+            formule_c = (f'={get_c(_DEB_BANQUE_ - 1)}{i - 1} + {get_c(_NB_COL_INTIT_ + 1)}{i} -'
+                         f' {get_c(_NB_COL_INTIT_ + 2)}{i}')
+        sheet[f'{get_c(_DEB_RECETTES_ - 1)}{i}'].value = formule_b  # Colonne Banque
+        sheet[f'{get_c(_DEB_BANQUE_ - 1)}{i}'].value = formule_c  # Colonne Caisse
+
     # Remplissage de la première ligne d'enregistrement
     sheet[_DEB_LIGN_SAISIE_][_NB_COL_INTIT_ - 1].value = 'Ouverture'
     month_dict = {'Janvier': '01', 'Février': '02', 'Mars': '03', 'Avril': '04', 'Mai': '05', 'Juin': '06',
@@ -347,7 +358,6 @@ def mettreenformesheetbilan(sheet):
     """
     _NB_COL_DEPENSES_ = len(_LIB_DEPENSES_)
     _NUM_LAST_COL_ = _DEB_DEPENSES_BILAN_ + _NB_COL_DEPENSES_
-    print(f'Dernière colonne : {get_c(_NUM_LAST_COL_)}')
     # Dimensionnement des colonnes
     for i in range(1, _NUM_LAST_COL_):
         sheet.column_dimensions[f'{get_c(i)}'].width = 9
