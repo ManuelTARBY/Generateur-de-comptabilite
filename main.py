@@ -351,6 +351,7 @@ def remplirsheetmois(doc, sheet):
         f'={get_c(_DEB_CAISSE_)}{_DEB_LIGN_SAISIE_}+{get_c(_DEB_BANQUE_)}{_DEB_LIGN_SAISIE_}'
 
 
+
 def mettreenformesheetbilan(sheet):
     """
     Met en forme la feuille de bilan comptable de l'année
