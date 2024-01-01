@@ -7,7 +7,6 @@ from tkinter.filedialog import askdirectory
 from openpyxl import Workbook
 from openpyxl.formatting.rule import CellIsRule
 from openpyxl.utils import get_column_letter as get_c
-
 from alignments import *
 from borders import *
 from fonts import *
@@ -16,7 +15,7 @@ from patternfills import *
 locale.setlocale(locale.LC_ALL, 'fr_FR')
 
 # Constantes
-# Nombre de mois dans le documents
+# Nombre de mois dans le document
 _NB_MOIS_ = 12
 
 # Feuille compta mensuelle
@@ -193,7 +192,6 @@ def mettreenformesheetmois(sheet):
     for row in sheet[f'A1:{get_c(_NB_COL_TOTAL_)}{_LIGN_COMPTE_ + 1}']:
         for cell in row:
             cell.alignment = align_center
-    sheet[f'{get_c(_NB_COL_INTIT_)}{_DEB_LIGN_SAISIE_ + 2}'].alignment = align_titre
     sheet[f'{get_c(_NB_COL_TOTAL_)}{_DEB_LIGN_SAISIE_ - 2}'].alignment = align_titre
     cell = sheet[f'{get_c(_NB_COL_TOTAL_)}{_LIGN_COMPTE_ + 1}'].font = font_dix_bold
     cell.alignment = align_titre
@@ -349,6 +347,8 @@ def remplirsheetmois(doc, sheet):
             f'=\'{liste_sheet[indice_sheet - 1]}\'!{get_c(_DEB_BANQUE_ - 1)}{_DEB_LIGN_SAISIE_ - 2}'
         sheet[f'{get_c(_DEB_BANQUE_)}{_DEB_LIGN_SAISIE_}'].value = \
             f'=\'{liste_sheet[indice_sheet - 1]}\'!{get_c(_DEB_RECETTES_ - 1)}{_DEB_LIGN_SAISIE_ - 2}'
+    sheet[f'{get_c(_DEB_RECETTES_ + 1)}{_DEB_LIGN_SAISIE_}'].value = \
+        f'={get_c(_DEB_CAISSE_)}{_DEB_LIGN_SAISIE_}+{get_c(_DEB_BANQUE_)}{_DEB_LIGN_SAISIE_}'
 
 
 def mettreenformesheetbilan(sheet):
@@ -538,7 +538,6 @@ def cheminfichier():
     # Chemin vers le répertoire de destination
     path = f'{askdirectory(title="Choix du dossier de destination")}'
     # Attribution du nom de fichier
-    # lblpath['text'] = f'{path}'
     txtpath.config(state="normal")
     txtpath.delete(0, last=len(txtpath.get()))
     txtpath.insert(0, path)
@@ -801,7 +800,6 @@ lbldir = Label(fendir, text="Destination :", font=arial_dix)
 lbldir.pack(side=LEFT)
 btndir = Button(fendir, text="...", width=3, font=arial_dix, command=cheminfichier, bg=bg_entry)
 btndir.pack(side=LEFT, padx=2)
-# lblpath = Label(fenetre, width=25, text='', font=arial_dix, bg=bg_entry, anchor="w", wraplength=largeur)
 txtpath = Entry(fenetre, width=25, font=arial_dix, bg=bg_entry)
 txtpath.config(state="readonly")
 txtpath.pack(side=TOP, pady=2, padx=10, fill=X)
